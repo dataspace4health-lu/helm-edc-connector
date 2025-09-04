@@ -1,0 +1,98 @@
+#deployment for control plane(an EDC component)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ template "app.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/instance: {{ include "app.revision" . }}
+    app.kubernetes.io/part-of: rse
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.labels" . | nindent 8 }}
+      annotations:
+        {{- include "app.metricsAnnotations" . | nindent 8 }}
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
+    spec:
+      securityContext:
+{{- include "app.securitycontext" . | nindent 8 }}
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecrets }}
+      {{- end }}
+      containers:
+      - name: {{ template "app.fullname" . }}
+        image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        {{- if .Values.secretEnv }}
+        {{- range $key, $value := .Values.secretEnv }}
+          - name: "{{ $key }}"
+            valueFrom:
+              secretKeyRef:
+                name: "{{ $value.name }}"
+                key: "{{ $value.key }}"
+        {{- end }}
+        {{- end }}
+        {{- if .Values.postgresql.enabled }}
+            - name: EDC_POSTGRES_URL
+              value: jdbc:postgresql://{{ include "app.fullname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local:5432/{{ .Values.postgresql.auth.database }}
+            {{- else }}
+            - name: EDC_POSTGRES_URL
+              value: {{ .Values.postgresql.url }}
+            {{- end }}
+            - name: EDC_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "app.fullname" . }}-postgresql
+                  key: password
+{{- if .Values.extraVars }}
+{{ toYaml .Values.extraVars | indent 8 }}
+{{- end }}
+        ports:
+        {{- if .Values.metrics.enabled }}
+        - name: monitoring
+          containerPort: {{ .Values.metrics.port }}
+        {{- end }}
+        - name: http
+          containerPort: {{ .Values.config.http.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 2
+          failureThreshold: 2
+          timeoutSeconds: 5
+        - name: management
+          containerPort: {{ .Values.config.management.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 2
+          failureThreshold: 2
+          timeoutSeconds: 5
+        - name: dsp
+          containerPort: {{ .Values.config.dsp.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 2
+          failureThreshold: 2
+          timeoutSeconds: 5
+        resources:
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.readinessProbe.path }}
+            port: {{ .Values.config.http.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+{{ toYaml .Values.resources | indent 10 }}
