@@ -17,6 +17,7 @@ metadata:
     {{- end }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+    
 spec:
   tls:
   {{- range .Values.ingress.tls }}
@@ -26,6 +27,7 @@ spec:
       {{- end }}
       secretName: {{ .secretName }}
   {{- end }}
+
   rules:
   {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}

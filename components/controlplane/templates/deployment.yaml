@@ -38,6 +38,8 @@ spec:
       - name: {{ template "app.fullname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+
+        env:
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"
@@ -48,51 +50,40 @@ spec:
         {{- end }}
         {{- end }}
         {{- if .Values.postgresql.enabled }}
-            - name: EDC_POSTGRES_URL
-              value: jdbc:postgresql://{{ include "app.fullname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local:5432/{{ .Values.postgresql.auth.database }}
-            {{- else }}
-            - name: EDC_POSTGRES_URL
-              value: {{ .Values.postgresql.url }}
-            {{- end }}
-            - name: EDC_POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "app.fullname" . }}-postgresql
-                  key: password
+          - name: EDC_DATASOURCE_DEFAULT_URL
+            value: jdbc:postgresql://{{ .Release.Name }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local:5432/{{ .Values.postgresql.auth.database }}
+        {{- else }}
+          - name: EDC_DATASOURCE_DEFAULT_URL
+            value: {{ .Values.postgresql.url }}
+        {{- end }}
+          - name: EDC_DATASOURCE_DEFAULT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "app.fullname" . }}-postgresql
+                key: password
+          - name: EDC_DATASOURCE_DEFAULT_USER
+            value: {{ .Values.postgresql.auth.username }}
 {{- if .Values.extraVars }}
-{{ toYaml .Values.extraVars | indent 8 }}
+{{ toYaml .Values.extraVars | indent 10 }}
 {{- end }}
         ports:
         {{- if .Values.metrics.enabled }}
-        - name: monitoring
-          containerPort: {{ .Values.metrics.port }}
+          - name: monitoring
+            containerPort: {{ .Values.metrics.port }}
         {{- end }}
-        - name: http
-          containerPort: {{ .Values.config.http.port }}
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          successThreshold: 2
-          failureThreshold: 2
-          timeoutSeconds: 5
-        - name: management
-          containerPort: {{ .Values.config.management.port }}
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          successThreshold: 2
-          failureThreshold: 2
-          timeoutSeconds: 5
-        - name: dsp
-          containerPort: {{ .Values.config.dsp.port }}
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          successThreshold: 2
-          failureThreshold: 2
-          timeoutSeconds: 5
+          - name: http
+            containerPort: {{ .Values.config.http.port }}
+          - name: management
+            containerPort: {{ .Values.config.management.port }}
+          - name: dsp
+            containerPort: {{ .Values.config.dsp.port }}
         resources:
+{{ toYaml .Values.resources | indent 10 }}
+
         readinessProbe:
           httpGet:
             path: {{ .Values.readinessProbe.path }}
             port: {{ .Values.config.http.port }}
           initialDelaySeconds: 5
           periodSeconds: 5
-{{ toYaml .Values.resources | indent 10 }}
+
