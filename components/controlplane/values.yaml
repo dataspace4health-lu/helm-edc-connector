@@ -101,7 +101,7 @@ config:
 redis:
   enabled: false
 
-
+#TODO: to add ingress for all the exposed apis
 ingress:
   enabled: true
   hosts:
