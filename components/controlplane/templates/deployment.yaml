@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ template "app.fullname" . }}"
+  name: "{{ template "app.chartname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
@@ -35,7 +35,7 @@ spec:
         - name: {{ .Values.image.pullSecrets }}
       {{- end }}
       containers:
-      - name: {{ template "app.fullname" . }}
+      - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
 
@@ -59,7 +59,7 @@ spec:
           - name: EDC_DATASOURCE_DEFAULT_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: {{ include "app.fullname" . }}-postgresql
+                name: {{ include "app.chartname" . }}-postgresql
                 key: password
           - name: EDC_DATASOURCE_DEFAULT_USER
             value: {{ .Values.postgresql.auth.username }}

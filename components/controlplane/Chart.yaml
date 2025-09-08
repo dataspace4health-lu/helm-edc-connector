@@ -1,7 +1,7 @@
 apiVersion: v1
 appVersion: v1.0.0
 description: Control plane for EDC Connector
-name: edc-controlplane
+name: controlplane
 version: 1.0.0
 dependencies:
   - name: postgresql

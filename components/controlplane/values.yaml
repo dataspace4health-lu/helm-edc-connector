@@ -1,6 +1,6 @@
 # -- Default number of instances to start 
 replicaCount: 1
-name: edc-controlplane
+name: controlplane
 # -- Ovverwrites application name
 # nameOverride: ""
 
