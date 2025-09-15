@@ -37,6 +37,10 @@ extraVars:
     value: "/api/dsp"
   - name: EDC_SQL_SCHEMA_AUTOCREATE
     value: "true"
+  - name: EDC_PARTICIPANT_ID
+    value: "did:web:dataspace4health%3A7093"
+  - name: WEB_HTTP_DID_PORT
+    value: "7093"
 
 
 autoscaling:
@@ -107,15 +111,20 @@ ingress:
   hosts:
     - paths:
       - path: /edc-cp
-        port: 9192 ## management port is the only port exposed via ingress for API calls
+        port: 9192 ## management port
+        pathType: Prefix
+      - path: /edc-dsp
+        port: 8092 ## dsp port
         pathType: Prefix
   tls:
     - secretName: dataspace4health.local
       hosts:
         - dataspace4health.local
-  rewriteTarget:
-    regex: ^/edc-cp/(.*)
-    replacement: /api/v1/management/v3/$1 # management api base path
+  rewriteTargets:
+    - regex: ^/edc-cp/(.*)
+      replacement: /api/v1/management/v3/$1 # management api base path
+    - regex: ^/edc-dsp/(.*)
+      replacement: /api/dsp/$1 # dsp api base path
 
 
 ## the health check end point is provided by the observability api of EDC
