@@ -19,28 +19,39 @@ podAnnotations: {}
 
 # -- Extra environment variables to set in the deployment
 extraVars:
+  #catalog
   - name: WEB_HTTP_CATALOG_PORT
     value: "8194"
   - name: WEB_HTTP_CATALOG_PATH
     value: "/api/catalog"
+  #web
   - name: WEB_HTTP_PORT
     value: "8181"
   - name: WEB_HTTP_PATH
     value: "/api"
+  #management
   - name: WEB_HTTP_MANAGEMENT_PORT
     value: "9192"
   - name: WEB_HTTP_MANAGEMENT_PATH
     value: "/api/v1/management"
+  #dsp protocol
   - name: WEB_HTTP_PROTOCOL_PORT
     value: "8092"
   - name: WEB_HTTP_PROTOCOL_PATH
     value: "/api/dsp"
+  #control
+  - name: WEB_HTTP_CONTROL_PORT
+    value: "8093"
+  - name: WEB_HTTP_CONTROL_PATH
+    value: "/api/control"
+
   - name: EDC_SQL_SCHEMA_AUTOCREATE
     value: "true"
   - name: EDC_PARTICIPANT_ID
     value: "did:web:dataspace4health%3A7093"
-  - name: WEB_HTTP_DID_PORT
-    value: "7093"
+
+  - name: EDC_RUNTIME_ID
+    value: "dataspace4health-p1-runtime"
 
 
 autoscaling:
@@ -82,6 +93,8 @@ service:
     port: 8092
   http:
     port: 8181
+  control:
+    port: 8093
 
 config:
   environment: development
@@ -101,6 +114,9 @@ config:
     host: ""
     protocol: dsp
     port: 8092 #dsp port
+  control:
+    host: ""
+    port: 8093 #control port   
 
 redis:
   enabled: false
@@ -116,6 +132,9 @@ ingress:
       - path: /edc-dsp
         port: 8092 ## dsp port
         pathType: Prefix
+      - path: /edc-control
+        port: 8093 ## control port
+        pathType: Prefix
   tls:
     - secretName: dataspace4health.local
       hosts:
@@ -125,6 +144,8 @@ ingress:
       replacement: /api/v1/management/v3/$1 # management api base path
     - regex: ^/edc-dsp/(.*)
       replacement: /api/dsp/$1 # dsp api base path
+    - regex: ^/edc-control/(.*)
+      replacement: /api/control/$1 # control api base path
 
 
 ## the health check end point is provided by the observability api of EDC
