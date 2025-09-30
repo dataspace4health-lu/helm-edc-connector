@@ -13,10 +13,15 @@ Endpoints available depends on the component.
     To initiate negotiation - POST http://dataspace4health.local/edc-cp/contractnegotiations
     To get negotiation status - POST http://dataspace4health.local/edc-cp/contractnegotiations/request
 
+**Data Plane**
+    Registers itself to control plane for data transfer purposes
+
 # Build and Test
 1.	Build and push all the images as listed-
-    1.1  Repo for the code base - **edc-controlplane**
-2.	Run **make refresh** on top level of the helm directy to build and install the helm
+    1.1  Repo for the code base of controlplane - **edc-controlplane**
+    1.2  Repo for the code base of dataplane - **edc-dataplane**
+    1.3  Repo for the code base of identityhub - **edc-identityhub**
+2.	Run **make clean && make uninstall && make build && make install** on top level of the helm directy to build and install the helm
 
 # Contribute
 Author : Aastha Rai

@@ -1,2 +1,4 @@
 controlplane:
   nameOverride: controlplane
+dataplane:
+  nameOverride: dataplane
