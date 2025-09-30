@@ -6,6 +6,8 @@ helm dependency update
 helm package . -d helm
 endef
 
+#TODO: add test scripts 
+
 SUBDIRS := $(wildcard components/*/.)
 CURRENT_DIR := $(notdir $(shell pwd))
 
@@ -29,7 +31,6 @@ install:
 	helm install $(CURRENT_DIR) helm/*.tgz --namespace edc
 
 uninstall:
-	kubectl delete pod playwright 2> /dev/null || true
 	helm uninstall $(CURRENT_DIR) --namespace edc 2> /dev/null || true
 
 clean: $(SUBDIRS)

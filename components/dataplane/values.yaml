@@ -126,9 +126,6 @@ config:
   control:
     host: ""
     port: 9292 #control port
- 
-redis:
-  enabled: false
 
 #TODO: check if ingress is needed for dataplane or it is only called by control plane internally.
 ingress:
@@ -149,6 +146,7 @@ ingress:
       replacement: /api/control/$1 # control api base path
     
 ## the health check end point is provided by the observability api of EDC
+#TODO: readiness probe to be enabled(how?). disabled for now to avoid pod crash loop and be discoverable by control plane
 readinessProbe:
   enabled: false
   path: /api/check/health
