@@ -2,3 +2,5 @@ controlplane:
   nameOverride: controlplane
 dataplane:
   nameOverride: dataplane
+identityhub:
+  nameOverride: identityhub

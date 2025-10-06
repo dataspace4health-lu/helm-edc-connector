@@ -21,3 +21,6 @@ dependencies:
   - name: dataplane
     version: 1.0.0
     repository: "file://components/dataplane"
+  - name: identityhub
+    version: 1.0.0
+    repository: "file://components/identityhub"

@@ -158,6 +158,10 @@ secretEnv:
 
 postgresql:
   enabled: true
+  image:
+    registry: bitnamilegacy
+    repository: postgresql
+    tag: 16.2.0-debian-12-r8
   auth:
     username: edc_user
     password: "p@ssw0rd"
