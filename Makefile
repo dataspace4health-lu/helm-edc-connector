@@ -49,7 +49,6 @@ uninstall:
 	helm uninstall $(CURRENT_DIR) --namespace edc 2> /dev/null || true
 
 	kubectl delete pvc data-edc-postgresql-0  -n edc 2> /dev/null || true
-	kubectl delete pvc data-identityhub-postgresql-0 -n edc 2> /dev/null || true
 
 clean: $(SUBDIRS)
 	@if [ "$(SUBDIR)" != "test" ]; then \
