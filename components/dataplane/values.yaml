@@ -156,6 +156,7 @@ secretEnv:
 
 postgresql:
   enabled: true
+  nameOverride: dataplane-postgresql
   auth:
     username: edc_user
     password: "p@ssw0rd"
