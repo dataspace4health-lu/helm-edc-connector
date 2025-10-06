@@ -142,10 +142,6 @@ readinessProbe:
   port: 8181
 
 secretEnv:
-  EDC_IH_API_SUPERUSER_KEY:
-    name: identityhub-secrets
-    key: superuser-key
-
 postgresql:
   nameOverride: identityhub-postgresql
   enabled: false

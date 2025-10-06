@@ -18,13 +18,28 @@ This Helm chart deploys the Eclipse Dataspace Connector (EDC) Identity Hub compo
 | `image.tag` | Image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `Always` |
 | `extraVars` | Extra environment variables for the deployment | See values.yaml |
-| `postgresql.enabled` | Enable PostgreSQL deployment | `true` |
-| `postgresql.auth.username` | PostgreSQL username | `identityhub_user` |
-| `postgresql.auth.password` | PostgreSQL password | `p@ssw0rd` |
-| `postgresql.auth.database` | PostgreSQL database name | `identityhub_db` |
 
-## Installation
+## Database Configuration
+
+The Identity Hub component uses the same PostgreSQL user in Control Plane and Data Plane components for consistency across the EDC deployment.
+
+## Services
+
+The Identity Hub exposes several services:
+
+| Service | Port | Path | Description |
+|---------|------|------|-------------|
+| API | 8181 | /api | General API access |
+| Identity | 8182 | /api/identity | Identity management |
+| Credentials | 8183 | /api/credentials | Credential handling |
+| DID | 8184 | / | DID resolution |
+
+## Installation using make
 
 ```bash
-helm install identityhub -f values.yaml .
+# From the component directory
+make uninstall
+make clean
+make build
+make install
 ```
