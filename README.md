@@ -5,6 +5,7 @@ This Helm chart defines a complete Eclipse Dataspace Connector (EDC) deployment 
 - **Control Plane**: Core component managing contracts, assets, and policies
 - **Data Plane**: Handles actual data transfer operations
 - **Identity Hub**: Provides identity management and verifiable credential services
+- **Dashboard**: Provides Dashboard UI for EDC instance of a participant
 
 The chart is designed to deploy all components as a unified connector solution for participating in data spaces.
 
@@ -15,6 +16,7 @@ The EDC Connector consists of three main components that work together:
 1. **Control Plane**: Manages metadata, contracts, policies, and negotiations
 2. **Data Plane**: Handles secure data transfers between participants
 3. **Identity Hub**: Provides decentralized identity and credential services
+4. **Dashboard**: Provides Dashboard UI for EDC instance of a participant
 
 Each component can be configured separately through the corresponding values files.
 
@@ -45,6 +47,11 @@ docker push <your-registry>/edc-dataplane:latest
 cd edc-identityhub
 docker build -t <your-registry>/edc-identityhub:latest .
 docker push <your-registry>/edc-identityhub:latest
+
+# Build Identity Hub
+cd edc-identityhub
+docker build -t <your-registry>/edc-dashboard:latest .
+docker push <your-registry>/edc-dashboard:latest
 ```
 
 ### Installing the Helm Chart
@@ -67,14 +74,14 @@ helm install edc-connector -n edc ./helm/edc-connector-1.0.0.tgz
 ### Control Plane
 | Operation | Endpoint |
 |-----------|----------|
-| Add an asset | POST http://dataspace4health.local/edc-cp/assets/ |
-| Get all assets | POST http://dataspace4health.local/edc-cp/assets/request |
-| Add a policy | POST http://dataspace4health.local/edc-cp/policydefinitions/ |
-| Get all policies | POST http://dataspace4health.local/edc-cp/policydefinitions/request |
-| Add a contract definition | POST http://dataspace4health.local/edc-cp/contractdefinitions/ |
-| Get all contract definitions | POST http://dataspace4health.local/edc-cp/contractdefinitions/request |
-| Initiate negotiation | POST http://dataspace4health.local/edc-cp/contractnegotiations |
-| Get negotiation status | POST http://dataspace4health.local/edc-cp/contractnegotiations/request |
+| Add an asset | POST http://dataspace4health.local/edc-cp/v3/assets/ |
+| Get all assets | POST http://dataspace4health.local/edc-cp/v3/assets/request |
+| Add a policy | POST http://dataspace4health.local/edc-cp/v3/policydefinitions/ |
+| Get all policies | POST http://dataspace4health.local/edc-cp/v3/policydefinitions/request |
+| Add a contract definition | POST http://dataspace4health.local/edc-cp/v3/contractdefinitions/ |
+| Get all contract definitions | POST http://dataspace4health.local/edc-cp/v3/contractdefinitions/request |
+| Initiate negotiation | POST http://dataspace4health.local/edc-cp/v3/contractnegotiations |
+| Get negotiation status | POST http://dataspace4health.local/edc-cp/v3/contractnegotiations/request |
 
 ### Data Plane
 Registers itself to the Control Plane for data transfer purposes. The Data Plane handles secure data transfers as orchestrated by the Control Plane.
@@ -86,6 +93,11 @@ Registers itself to the Control Plane for data transfer purposes. The Data Plane
 | Credentials API | http://dataspace4health.local/credentials/ |
 | DID Resolution | http://dataspace4health.local/did/ |
 
+### Dashboard
+| Service | Endpoint |
+|---------|----------|
+| UI | http://dataspace4health.local/dashbaord/ |
+
 ## Configuration
 
 Each component can be configured separately through their respective values files:
@@ -93,6 +105,7 @@ Each component can be configured separately through their respective values file
 - `components/controlplane/values.yaml`: Control Plane configuration
 - `components/dataplane/values.yaml`: Data Plane configuration
 - `components/identityhub/values.yaml`: Identity Hub configuration
+- `components/dashboard/values.yaml`: Dashboard configuration, set the connector values to change the instance of a participant
 
 ## Database Configuration
 

@@ -24,3 +24,6 @@ dependencies:
   - name: identityhub
     version: 1.0.0
     repository: "file://components/identityhub"
+  - name: dashboard
+    version: 1.0.0
+    repository: "file://components/dashboard"
