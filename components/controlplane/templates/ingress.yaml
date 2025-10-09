@@ -12,6 +12,10 @@ metadata:
         {{- $middlewares = append $middlewares $mwName }}
       {{- end }}
     {{- end }}
+    {{- if .Values.ingress.cors }}
+      {{- $mwName := printf "%s-%s-cors@kubernetescrd" $.Release.Namespace (include "app.chartname" $)}}
+      {{- $middlewares = append $middlewares $mwName }}
+    {{- end }}
     {{- if $middlewares }}
       traefik.ingress.kubernetes.io/router.middlewares: {{ join "," $middlewares }}
     {{- end }}

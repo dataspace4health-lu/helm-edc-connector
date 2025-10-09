@@ -1,4 +1,5 @@
 #deployment for control plane(an EDC component)
+##TODO: setup dependency on postgres helm chart to ensure postgres is up before control plane
 apiVersion: apps/v1
 kind: Deployment
 metadata:
