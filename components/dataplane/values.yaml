@@ -86,6 +86,20 @@ extraVars:
   - name: EDC_SQL_SCHEMA_AUTOCREATE
     value: "true"
 
+  # Add these variables for enabling CORS
+  # - name: EDC_WEB_REST_CORS_ORIGINS
+  #   #value: "http://dataspace4health.local:8086"
+  #   value: "*"
+  
+  # - name: EDC_WEB_REST_CORS_ENABLED
+  #   value: "true"
+  
+  # - name: EDC_WEB_REST_CORS_HEADERS
+  #   value: "Authorization, Content-Type, Origin, Accept, x-api-key"
+  
+  # - name: EDC_WEB_REST_CORS_METHODS
+  #   value: "GET,POST,PUT,DELETE,OPTIONS"  
+
 
 autoscaling:
   enabled: false

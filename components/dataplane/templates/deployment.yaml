@@ -1,4 +1,5 @@
 # deployment for data plane(an EDC component)
+#TODO: setup dependency on control plane to be ready first
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,6 +35,22 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.image.pullSecrets }}
       {{- end }}
+      
+      initContainers:
+        - name: wait-for-controlplane
+          image: appropriate/curl:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - "/bin/sh"
+            - "-c"
+            - |
+              echo "Waiting for control plane to be ready... http://{{ .Release.Name }}-controlplane:8181/api/check/health"
+              until curl -s http://{{ .Release.Name }}-controlplane:8181/api/check/health | grep -q "\"isSystemHealthy\":true"; do
+                echo "Control plane is not ready yet. Retrying in 3 seconds..."
+                sleep 3
+              done
+              echo "Control plane is ready!"
+
       containers:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
