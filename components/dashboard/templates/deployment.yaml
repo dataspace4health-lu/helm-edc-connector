@@ -1,0 +1,94 @@
+#deployment for control plane(an EDC component)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ template "app.chartname" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/instance: {{ include "app.revision" . }}
+    app.kubernetes.io/part-of: rse
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.labels" . | nindent 8 }}
+      annotations:
+        {{- include "app.metricsAnnotations" . | nindent 8 }}
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
+    spec:
+      securityContext:
+{{- include "app.securitycontext" . | nindent 8 }}
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecrets }}
+      {{- end }}
+
+      initContainers:
+        - name: wait-for-controlplane
+          image: appropriate/curl:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - "/bin/sh"
+            - "-c"
+            - |
+              echo "Waiting for control plane to be ready... http://{{ .Release.Name }}-controlplane:8181/api/check/health"
+              until curl -s http://{{ .Release.Name }}-controlplane:8181/api/check/health | grep -q "\"isSystemHealthy\":true"; do
+                echo "Control plane is not ready yet. Retrying in 3 seconds..."
+                sleep 3
+              done
+              echo "Control plane is ready!"
+
+      containers:
+      - name: {{ template "app.chartname" . }}
+        image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+
+        env:
+        {{- if .Values.secretEnv }}
+        {{- range $key, $value := .Values.secretEnv }}
+          - name: "{{ $key }}"
+            valueFrom:
+              secretKeyRef:
+                name: "{{ $value.name }}"
+                key: "{{ $value.key }}"
+        {{- end }}
+        {{- end }}
+{{- if .Values.extraVars }}
+{{ toYaml .Values.extraVars | indent 10 }}
+{{- end }}
+        ports:
+        {{- if .Values.metrics.enabled }}
+          - name: monitoring
+            containerPort: {{ .Values.metrics.port }}
+        {{- end }}
+          - name: http
+            containerPort: {{ .Values.config.http.port }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.readinessProbe.path }}
+            port: {{ .Values.readinessProbe.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+            - name: app-config
+              mountPath: /app/config
+      volumes:
+        - name: app-config
+          configMap:
+            name: {{ include "app.chartname" . }}-appconfig
+

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.chartname" . }}-appconfig
+data:
+  edc-connector-config.json: |
+    [ 
+      {
+        "connectorName": "{{ .Values.connectorConfig.connectorName }}",
+        "managementUrl": "{{ .Values.connectorConfig.managementUrl }}",
+        "defaultUrl": "{{ .Values.connectorConfig.defaultUrl }}",
+        "protocolUrl": "{{ .Values.connectorConfig.protocolUrl }}",
+        "federatedCatalogEnabled": {{ .Values.connectorConfig.federatedCatalogEnabled }},
+        "federatedCatalogUrl": "{{ .Values.connectorConfig.federatedCatalogUrl }}",
+        "did": "{{ .Values.connectorConfig.did }}"
+      }
+    ]

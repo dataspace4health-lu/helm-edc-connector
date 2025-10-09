@@ -4,3 +4,5 @@ dataplane:
   nameOverride: dataplane
 identityhub:
   nameOverride: identityhub
+dashboard:
+  nameOverride: dashboard
