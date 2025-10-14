@@ -47,23 +47,13 @@ extraVars:
 
   - name: EDC_SQL_SCHEMA_AUTOCREATE
     value: "true"
+
   - name: EDC_PARTICIPANT_ID
     value: "did:web:dataspace4health%3A7093"
 
   - name: EDC_RUNTIME_ID
     value: "dataspace4health-p1-runtime"
   
-  - name: EDC_WEB_REST_CORS_ORIGINS
-    value: "*"
-  
-  - name: EDC_WEB_REST_CORS_ENABLED
-    value: "true"
-  
-  - name: EDC_WEB_REST_CORS_HEADERS
-    value: "Authorization, Content-Type, Origin, Accept, x-api-key"
-  
-  - name: EDC_WEB_REST_CORS_METHODS
-    value: "GET,POST,PUT,DELETE,OPTIONS"    
 
 
 autoscaling:
@@ -161,10 +151,6 @@ ingress:
       replacement: /api/dsp/$1 # dsp api base path
     - regex: ^/edc-control/(.*)
       replacement: /api/control/$1 # control api base path
-  # TODO: a list of CORS can be added and ingress.yaml and middleware.yaml can be made generic to support multiple CORS origins
-  # example, multiple origins, multiple headers and methods
-  # if true, it adds a startdard CORS middleware to the ingress
-  cors: true
 
 
 ## the health check end point is provided by the observability api of EDC
