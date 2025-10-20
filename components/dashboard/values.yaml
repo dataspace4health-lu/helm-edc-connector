@@ -97,11 +97,25 @@ postgresql:
 storage:
   enabled: false
 
+#The connector config changes as per the connector type (data provider or data user)
+#For Data User
 connectorConfig:
-  connectorName: "Data Holder"
-  managementUrl: "http://10.168.191.8/edc-cp" # should point to control plane management api
-  defaultUrl: "http://10.168.191.8/api" # should point to api
-  protocolUrl: "http://10.168.191.8/edc-dsp" # should point to control plane dsp api
+  connectorName: "Data User"
+  managementUrl: "http://dataspace4health.local:8080/edc-cp" # should point to control plane management api
+  defaultUrl: "http://dataspace4health.local:8080/api" # should point to api
+  protocolUrl: "http://dataspace4health.local:8080/edc-dsp" # should point to control plane dsp api
   federatedCatalogEnabled: "true"
-  federatedCatalogUrl: "http://10.168.191.8:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
+  federatedCatalogUrl: "http://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
   did: "did:web:dataspace4health%3A7093"
+
+#For Data Provider
+
+# connectorConfig:
+#   connectorName: "Data Holder"
+#   managementUrl: "http://dataspace4health.local/edc-cp" # should point to control plane management api
+#   defaultUrl: "http://dataspace4health.local/api" # should point to api
+#   protocolUrl: "http://dataspace4health.local/edc-dsp" # should point to control plane dsp api
+#   federatedCatalogEnabled: "true"
+#   federatedCatalogUrl: "http://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
+#   did: "did:web:dataspace4health%3A8093"
+
