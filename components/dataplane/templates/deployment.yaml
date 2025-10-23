@@ -67,14 +67,14 @@ spec:
         {{- end }}
         {{- end }}
           - name: EDC_DATASOURCE_DEFAULT_URL
-            value: {{ .Values.postgresql.url }}
+            value: {{ .Values.controlplane.postgresql.url }}
           - name: EDC_DATASOURCE_DEFAULT_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: {{ include "app.chartname" . }}-postgresql
+                name: {{ include "app.chartname" . }}-controlplane-postgresql
                 key: password
           - name: EDC_DATASOURCE_DEFAULT_USER
-            value: {{ .Values.postgresql.auth.username }}
+            value: {{ .Values.controlplane.postgresql.auth.username }}
 {{- if .Values.extraVars }}
 {{ toYaml .Values.extraVars | indent 10 }}
 {{- end }}

@@ -1,8 +1,19 @@
 controlplane:
   nameOverride: controlplane
+  postgresql:
+    nameOverride: controlplane-postgresql
 dataplane:
   nameOverride: dataplane
+  controlplane:
+    enabled: false
+    postgresql:
+      auth:
+        password: "p@ssw0rd"
 identityhub:
   nameOverride: identityhub
+  postgresql:
+    nameOverride: identityhub-postgresql
 dashboard:
   nameOverride: dashboard
+  controlplane:
+    enabled: false

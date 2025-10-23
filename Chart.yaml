@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: v2
 name: edc-connector
 description: A Helm chart for deploying the EDC Connector with respect to a participant which consists of multiple components - control-plane, data-plane, postgres and identity-hub.
 type: application

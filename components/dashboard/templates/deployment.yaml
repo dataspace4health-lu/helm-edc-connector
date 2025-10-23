@@ -85,8 +85,8 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         volumeMounts:
-            - name: app-config
-              mountPath: /app/config
+          - name: app-config
+            mountPath: /app/config
       volumes:
         - name: app-config
           configMap:

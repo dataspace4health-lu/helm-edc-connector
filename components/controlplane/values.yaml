@@ -127,7 +127,8 @@ redis:
 ingress:
   enabled: true
   hosts:
-    - paths:
+    - host: dataspace4health.local
+      paths:
       - path: /edc-cp
         port: 9192 ## management port
         pathType: Prefix
@@ -176,6 +177,3 @@ postgresql:
     persistence:
       enabled: true
       size: 5Gi
-
-storage:
-  enabled: false
