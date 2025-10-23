@@ -50,20 +50,48 @@ service:
   http:
     port: 8086
 
-
 config:
   environment: development
-  api:
-    basePath: /api
+  basePath: /dashboard
   http:
     host: ""
     port: 8080 #web http port
-
+  # The connector config changes as per the connector type (data provider or data user)
+  # For Data Provider
+  connectorName: "Data Holder"
+  managementUrl: "https://dataspace4health.local/edc-cp" # should point to control plane management api
+  defaultUrl: "https://dataspace4health.local/api" # should point to api
+  protocolUrl: "https://dataspace4health.local/edc-dsp" # should point to control plane dsp api
+  federatedCatalogEnabled: "false"
+  federatedCatalogUrl: "https://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
+  did: "did:web:dataspace4health%3A8093"
+  # # For Data User
+  # connectorName: "Data User"
+  # managementUrl: "https://dataspace4health.local:8080/edc-cp" # should point to control plane management api
+  # defaultUrl: "https://dataspace4health.local:8080/api" # should point to api
+  # protocolUrl: "https://dataspace4health.local:8080/edc-dsp" # should point to control plane dsp api
+  # federatedCatalogEnabled: "false"
+  # federatedCatalogUrl: "https://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
+  # did: "did:web:dataspace4health%3A7093"
 
 ingress:
   enabled: true
+  rewriteTargets: 
+  - regex: /dashboard(/|$)(.*)
+    replacement: /$2
+  rewriteBody: 
+  - regex: <meta charset="utf-8">
+    replacement: <base href="/dashboard/"><meta charset="utf-8">
+    logLevel: -2
+    monitoring:
+      methods:
+      - GET
+      types:
+      - "*/*"
+      - text/html
   hosts:
-    - paths:
+    - host: dataspace4health.local
+      paths:
       - path: /dashboard
         port: 8086 
         pathType: Prefix
@@ -71,7 +99,6 @@ ingress:
     - secretName: dataspace4health.local
       hosts:
         - dataspace4health.local
-
 
 ## the health check end point
 readinessProbe:
@@ -81,41 +108,8 @@ readinessProbe:
 
 secretEnv:
 
-# TODO: do we use the static configuration of participants details or dynamic from DB?
-postgresql:
-  enabled: false
-  auth:
-    username: edc_user
-    password: "p@ssw0rd"
-    database: edc_connector_db
-    postgresPassword: "p@ssw0rd"
-  primary:
-    persistence:
-      enabled: true
-      size: 5Gi
-
-storage:
-  enabled: false
-
-#The connector config changes as per the connector type (data provider or data user)
-#For Data User
-connectorConfig:
-  connectorName: "Data User"
-  managementUrl: "http://dataspace4health.local:8080/edc-cp" # should point to control plane management api
-  defaultUrl: "http://dataspace4health.local:8080/api" # should point to api
-  protocolUrl: "http://dataspace4health.local:8080/edc-dsp" # should point to control plane dsp api
-  federatedCatalogEnabled: "true"
-  federatedCatalogUrl: "http://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
-  did: "did:web:dataspace4health%3A7093"
-
-#For Data Provider
-
-# connectorConfig:
-#   connectorName: "Data Holder"
-#   managementUrl: "http://dataspace4health.local/edc-cp" # should point to control plane management api
-#   defaultUrl: "http://dataspace4health.local/api" # should point to api
-#   protocolUrl: "http://dataspace4health.local/edc-dsp" # should point to control plane dsp api
-#   federatedCatalogEnabled: "true"
-#   federatedCatalogUrl: "http://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
-#   did: "did:web:dataspace4health%3A8093"
-
+controlplane:
+  enabled: true
+  nameOverride: controlplane
+  postgresql:
+    nameOverride: controlplane-postgresql

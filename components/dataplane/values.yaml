@@ -145,7 +145,8 @@ config:
 ingress:
   enabled: true
   hosts:
-    - paths:
+    - host: dataspace4health.local
+      paths:
       - path: /edc-dp
         port: 9292 ## control port
         pathType: Prefix
@@ -168,17 +169,8 @@ readinessProbe:
 
 secretEnv:
 
-postgresql:
+controlplane:
   enabled: true
-  auth:
-    username: edc_user
-    password: "p@ssw0rd"
-    database: edc_connector_db
-    postgresPassword: "p@ssw0rd"
-  primary:
-    persistence:
-      enabled: true
-      size: 5Gi
-
-storage:
-  enabled: false
+  nameOverride: controlplane
+  postgresql:
+    nameOverride: controlplane-postgresql

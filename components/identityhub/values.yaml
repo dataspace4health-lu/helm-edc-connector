@@ -142,15 +142,14 @@ readinessProbe:
   port: 8181
 
 secretEnv:
+
 postgresql:
-  nameOverride: identityhub-postgresql
-  enabled: false
+  enabled: true
   image:
     registry: bitnamilegacy
     repository: postgresql
     tag: 16.2.0-debian-12-r8
   auth:
-    existingSecret: identityhub-postgresql
     username: identityhub_user
     password: "p@ssw0rd"
     database: identityhub_db
@@ -159,8 +158,4 @@ postgresql:
     persistence:
       enabled: true
       size: 5Gi
-
-storage:
-  enabled: false
-  size: 5Gi
-  path: "/data/identityhub-postgres"
+      path: "/data/identityhub-postgres"
