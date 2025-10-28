@@ -59,19 +59,19 @@ config:
   # The connector config changes as per the connector type (data provider or data user)
   # For Data Provider
   connectorName: "Data Holder"
-  managementUrl: "https://dataspace4health.local/edc/management/api" # should point to control plane management api
-  defaultUrl: "https://dataspace4health.local/edc/base/api" # should point to api
-  protocolUrl: "https://dataspace4health.local/edc/dsp/api" # should point to control plane dsp api
+  managementUrl: "https://dataspace4health.local/edc/cp/management/api" # should point to control plane management api
+  defaultUrl: "https://dataspace4health.local/edc/cp/base/api" # should point to api
+  protocolUrl: "https://dataspace4health.local/edc/cp/dsp/api" # should point to control plane dsp api
   federatedCatalogEnabled: "false"
-  federatedCatalogUrl: "https://dataspace4health.local/edc/catalog/api" # should point to the federator's federated catalog api
+  federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
   did: "did:web:dataspace4health.local"
   # # For Data User
   # connectorName: "Data User"
-  # managementUrl: "https://dataspace4health.local/edc/management/api" # should point to control plane management api
-  # defaultUrl: "https://dataspace4health.local/edc/base/api" # should point to api
-  # protocolUrl: "https://dataspace4health.local/edc/dsp/api" # should point to control plane dsp api
+  # managementUrl: "https://dataspace4health.local/edc/cp/management/api" # should point to control plane management api
+  # defaultUrl: "https://dataspace4health.local/edc/cp/base/api" # should point to api
+  # protocolUrl: "https://dataspace4health.local/edc/cp/dsp/api" # should point to control plane dsp api
   # federatedCatalogEnabled: "false"
-  # federatedCatalogUrl: "https://dataspace4health.local/edc/catalog/api" # should point to the federator's federated catalog api
+  # federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
   # did: "did:web:dataspace4health.local"
 
 ingress:

@@ -70,23 +70,23 @@ config:
   http:
     host: ""
     port: 8181 #web http port
-    path: "/edc/base/api"
+    path: "/edc/cp/base/api"
   management:
     host: ""
     port: 9192 #management api port
-    path: "/edc/management/api"
+    path: "/edc/cp/management/api"
   control:
     host: ""
     port: 8093 #control port 
-    path: "/edc/control/api"
+    path: "/edc/cp/control/api"
   protocol:
     host: ""
     port: 8092 #dsp port 
-    path: "/edc/dsp/api"
+    path: "/edc/cp/dsp/api"
   catalog:
     host: ""
     port: 8194
-    path: "/edc/catalog/api"
+    path: "/edc/cp/catalog/api"
     
 #TODO: to add ingress for all the exposed apis
 ingress:
@@ -94,19 +94,19 @@ ingress:
   hosts:
     - host: dataspace4health.local
       paths:
-      - path: /edc/base/api
+      - path: /edc/cp/base/api
         port: 8181 ## internal app port for health check
         pathType: Prefix
-      - path: /edc/management/api
+      - path: /edc/cp/management/api
         port: 9192 ## management port
         pathType: Prefix
-      - path: "/edc/dsp/api"
+      - path: "/edc/cp/dsp/api"
         port: 8092 ## dsp port
         pathType: Prefix
-      - path: "/edc/control/api"
+      - path: "/edc/cp/control/api"
         port: 8093 ## control port
         pathType: Prefix
-      - path: "/edc/catalog/api"
+      - path: "/edc/cp/catalog/api"
         port: 8194 ## catalog port
         pathType: Prefix
   tls:
@@ -117,7 +117,7 @@ ingress:
 ## the health check end point is provided by the observability api of EDC
 readinessProbe:
   enabled: true
-  path: /edc/base/api/check/health
+  path: /edc/cp/base/api/check/health
   port: 8181
 
 secretEnv:
