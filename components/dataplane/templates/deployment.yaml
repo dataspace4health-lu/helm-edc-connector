@@ -44,8 +44,8 @@ spec:
             - "/bin/sh"
             - "-c"
             - |
-              echo "Waiting for control plane to be ready... http://{{ .Release.Name }}-controlplane:8181/api/check/health"
-              until curl -s http://{{ .Release.Name }}-controlplane:8181/api/check/health | grep -q "\"isSystemHealthy\":true"; do
+              echo "Waiting for control plane to be ready... {{ .Values.config.controlplaneReadinessUrl }}"
+              until curl -s {{ .Values.config.controlplaneReadinessUrl }} | grep -q "\"isSystemHealthy\":true"; do
                 echo "Control plane is not ready yet. Retrying in 3 seconds..."
                 sleep 3
               done
@@ -57,6 +57,45 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
 
         env:
+          - name: EDC_PARTICIPANT_ID 
+            value: "{{ .Values.config.participantId }}"
+          - name: EDC_SQL_SCHEMA_AUTOCREATE
+            value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
+          - name: EDC_DATA_PLANE_SELF_REGISTRATION
+            value: "{{ .Values.config.dataplaneSelfRegistration }}"
+          # should point to the control plane service name and control api port
+          - name: EDC_DPF_SELECTOR_URL
+            value: "{{ .Values.config.dataplaneSelectorUrl }}"
+          - name: WEB_HTTP_PORT
+            value: "{{ .Values.config.http.port }}"
+          - name: WEB_HTTP_PATH
+            value: "{{ .Values.config.http.path }}"
+          - name: WEB_HTTP_CONTROL_PORT
+            value: "{{ .Values.config.control.port }}"
+          - name: WEB_HTTP_CONTROL_PATH
+            value: "{{ .Values.config.control.path }}"
+          - name: WEB_HTTP_MANAGEMENT_PORT
+            value: "{{ .Values.config.management.port }}"
+          - name: WEB_HTTP_MANAGEMENT_PATH
+            value: "{{ .Values.config.management.path }}"
+          - name: WEB_HTTP_PROTOCOL_PORT
+            value: "{{ .Values.config.protocol.port }}"
+          - name: WEB_HTTP_PROTOCOL_PATH
+            value: "{{ .Values.config.protocol.path }}"
+          - name: WEB_HTTP_VERSION_PORT
+            value: "{{ .Values.config.version.port }}"
+          - name: WEB_HTTP_VERSION_PATH
+            value: "{{ .Values.config.version.path }}"
+          - name: WEB_HTTP_PUBLIC_PORT
+            value: "{{ .Values.config.public.port }}"
+          - name: WEB_HTTP_PUBLIC_PATH
+            value: "{{ .Values.config.public.path }}"
+          - name: EDC_DATAPLANE_PROXY_PUBLIC_ENDPOINT
+            value: "http://localhost:{{ .Values.config.public.port }}{{ .Values.config.public.path }}"
+          - name: EDC_TRANSFER_PROXY_TOKEN_VERIFIER_PUBLICKEY_ALIAS
+            value: "{{ .Values.config.participantId }}#{{ .Values.config.stsPublicKeyAlias }}"
+          - name: EDC_TRANSFER_PROXY_TOKEN_SIGNER_PRIVATEKEY_ALIAS
+            value: "{{ .Values.config.participantId }}-{{ .Values.config.stsPrivateKeyAlias }}"
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"
