@@ -52,36 +52,36 @@ service:
 
 config:
   environment: development
-  basePath: /dashboard
+  basePath: /edc/dashboard
   http:
     host: ""
     port: 8080 #web http port
   # The connector config changes as per the connector type (data provider or data user)
   # For Data Provider
   connectorName: "Data Holder"
-  managementUrl: "https://dataspace4health.local/edc-cp" # should point to control plane management api
-  defaultUrl: "https://dataspace4health.local/api" # should point to api
-  protocolUrl: "https://dataspace4health.local/edc-dsp" # should point to control plane dsp api
+  managementUrl: "https://dataspace4health.local/edc/management/api" # should point to control plane management api
+  defaultUrl: "https://dataspace4health.local/edc/base/api" # should point to api
+  protocolUrl: "https://dataspace4health.local/edc/dsp/api" # should point to control plane dsp api
   federatedCatalogEnabled: "false"
-  federatedCatalogUrl: "https://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
-  did: "did:web:dataspace4health%3A8093"
+  federatedCatalogUrl: "https://dataspace4health.local/edc/catalog/api" # should point to the federator's federated catalog api
+  did: "did:web:dataspace4health.local"
   # # For Data User
   # connectorName: "Data User"
-  # managementUrl: "https://dataspace4health.local:8080/edc-cp" # should point to control plane management api
-  # defaultUrl: "https://dataspace4health.local:8080/api" # should point to api
-  # protocolUrl: "https://dataspace4health.local:8080/edc-dsp" # should point to control plane dsp api
+  # managementUrl: "https://dataspace4health.local/edc/management/api" # should point to control plane management api
+  # defaultUrl: "https://dataspace4health.local/edc/base/api" # should point to api
+  # protocolUrl: "https://dataspace4health.local/edc/dsp/api" # should point to control plane dsp api
   # federatedCatalogEnabled: "false"
-  # federatedCatalogUrl: "https://dataspace4health.local:8081/edc-fc/api/catalog" # should point to the federator's federated catalog api
-  # did: "did:web:dataspace4health%3A7093"
+  # federatedCatalogUrl: "https://dataspace4health.local/edc/catalog/api" # should point to the federator's federated catalog api
+  # did: "did:web:dataspace4health.local"
 
 ingress:
   enabled: true
   rewriteTargets: 
-  - regex: /dashboard(/|$)(.*)
+  - regex: /edc/dashboard(/|$)(.*)
     replacement: /$2
   rewriteBody: 
   - regex: <meta charset="utf-8">
-    replacement: <base href="/dashboard/"><meta charset="utf-8">
+    replacement: <base href="/edc/dashboard/"><meta charset="utf-8">
     logLevel: -2
     monitoring:
       methods:
@@ -92,7 +92,7 @@ ingress:
   hosts:
     - host: dataspace4health.local
       paths:
-      - path: /dashboard
+      - path: /edc/dashboard
         port: 8086 
         pathType: Prefix
   tls:
@@ -103,7 +103,7 @@ ingress:
 ## the health check end point
 readinessProbe:
   enabled: true
-  path: /dashboard/
+  path: /edc/dashboard/
   port: 8080
 
 secretEnv:

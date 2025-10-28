@@ -43,8 +43,8 @@ spec:
             - "/bin/sh"
             - "-c"
             - |
-              echo "Waiting for control plane to be ready... http://{{ .Release.Name }}-controlplane:8181/api/check/health"
-              until curl -s http://{{ .Release.Name }}-controlplane:8181/api/check/health | grep -q "\"isSystemHealthy\":true"; do
+              echo "Waiting for control plane to be ready... {{ .Values.config.defaultUrl }}/check/health"
+              until curl -sk {{ .Values.config.defaultUrl }}/check/health | grep -q "\"isSystemHealthy\":true"; do
                 echo "Control plane is not ready yet. Retrying in 3 seconds..."
                 sleep 3
               done

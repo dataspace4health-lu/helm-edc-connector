@@ -19,43 +19,7 @@ podAnnotations: {}
 
 # -- Extra environment variables to set in the deployment
 extraVars:
-  #catalog
-  - name: WEB_HTTP_CATALOG_PORT
-    value: "8194"
-  - name: WEB_HTTP_CATALOG_PATH
-    value: "/api/catalog"
-  #web
-  - name: WEB_HTTP_PORT
-    value: "8181"
-  - name: WEB_HTTP_PATH
-    value: "/api"
-  #management
-  - name: WEB_HTTP_MANAGEMENT_PORT
-    value: "9192"
-  - name: WEB_HTTP_MANAGEMENT_PATH
-    value: "/api/v1/management"
-  #dsp protocol
-  - name: WEB_HTTP_PROTOCOL_PORT
-    value: "8092"
-  - name: WEB_HTTP_PROTOCOL_PATH
-    value: "/api/dsp"
-  #control
-  - name: WEB_HTTP_CONTROL_PORT
-    value: "8093"
-  - name: WEB_HTTP_CONTROL_PATH
-    value: "/api/control"
-
-  - name: EDC_SQL_SCHEMA_AUTOCREATE
-    value: "true"
-
-  - name: EDC_PARTICIPANT_ID
-    value: "did:web:dataspace4health%3A7093"
-
-  - name: EDC_RUNTIME_ID
-    value: "dataspace4health-p1-runtime"
-  
-
-
+ 
 autoscaling:
   enabled: false
   minReplicas: 2
@@ -89,75 +53,71 @@ security:
 ## The web http ports is general-purpose API endpoint that may expose different resources and can be used when we write custom logic which is not part of management API or protocol API
 ## The management port is used to expose the management API of EDC
 service:
-  management:
-    port: 9192
-  dsp:
-    port: 8092
   http:
     port: 8181
+  management:
+    port: 9192
   control:
     port: 8093
+  protocol:
+    port: 8092
+  catalog:
+    port: 8194
 
 config:
-  environment: development
-  api:
-    basePath: /api
+  participantId: "did:web:dataspace4health.local" # DID:WEB identifier of the participant, will be used as runtime participantId
+  sqlSchemaAutocreate: true
   http:
     host: ""
     port: 8181 #web http port
-    timeout:
-      idle: 120s
-      read: 10s
-      write: 10s
+    path: "/edc/base/api"
   management:
     host: ""
     port: 9192 #management api port
-  dsp:
-    host: ""
-    protocol: dsp
-    port: 8092 #dsp port
+    path: "/edc/management/api"
   control:
     host: ""
-    port: 8093 #control port   
-
-redis:
-  enabled: false
-
+    port: 8093 #control port 
+    path: "/edc/control/api"
+  protocol:
+    host: ""
+    port: 8092 #dsp port 
+    path: "/edc/dsp/api"
+  catalog:
+    host: ""
+    port: 8194
+    path: "/edc/catalog/api"
+    
 #TODO: to add ingress for all the exposed apis
 ingress:
   enabled: true
   hosts:
     - host: dataspace4health.local
       paths:
-      - path: /edc-cp
+      - path: /edc/base/api
+        port: 8181 ## internal app port for health check
+        pathType: Prefix
+      - path: /edc/management/api
         port: 9192 ## management port
         pathType: Prefix
-      - path: /edc-dsp
+      - path: "/edc/dsp/api"
         port: 8092 ## dsp port
         pathType: Prefix
-      - path: /edc-control
+      - path: "/edc/control/api"
         port: 8093 ## control port
         pathType: Prefix
-      - path: /api/check/health
-        port: 8181 ## internal app port for health check
-        pathType: Exact
+      - path: "/edc/catalog/api"
+        port: 8194 ## catalog port
+        pathType: Prefix
   tls:
     - secretName: dataspace4health.local
       hosts:
         - dataspace4health.local
-  rewriteTargets:
-    - regex: ^/edc-cp/(.*)
-      replacement: /api/v1/management/$1 # management api base path
-    - regex: ^/edc-dsp/(.*)
-      replacement: /api/dsp/$1 # dsp api base path
-    - regex: ^/edc-control/(.*)
-      replacement: /api/control/$1 # control api base path
-
 
 ## the health check end point is provided by the observability api of EDC
 readinessProbe:
   enabled: true
-  path: /api/check/health
+  path: /edc/base/api/check/health
   port: 8181
 
 secretEnv:

@@ -14,11 +14,14 @@ spec:
   - name: management
     targetPort: {{ .Values.config.management.port }}
     port: {{ .Values.service.management.port }}
-  - name: dsp
-    targetPort: {{ .Values.config.dsp.port }}
-    port: {{ .Values.service.dsp.port }}
+  - name: protocol
+    targetPort: {{ .Values.config.protocol.port }}
+    port: {{ .Values.service.protocol.port }}
   - name: control
     targetPort: {{ .Values.config.control.port }}
     port: {{ .Values.service.control.port }}
+  - name: catalog
+    targetPort: {{ .Values.config.catalog.port }}
+    port: {{ .Values.service.catalog.port }}
   selector:
     {{- include "app.selectorLabels" . | nindent 4 }}
