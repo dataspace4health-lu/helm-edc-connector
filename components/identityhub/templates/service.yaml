@@ -7,9 +7,9 @@ metadata:
     {{- include "app.labels" . | nindent 4 }}
 spec:
   ports:
-  - name: api
-    port: {{ .Values.service.api.port }}
-    targetPort: {{ .Values.service.api.port }}
+  - name: http
+    port: {{ .Values.service.http.port }}
+    targetPort: {{ .Values.service.http.port }}
   - name: identity
     port: {{ .Values.service.identity.port }}
     targetPort: {{ .Values.service.identity.port }}

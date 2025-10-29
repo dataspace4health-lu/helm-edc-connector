@@ -1,5 +1,4 @@
 #deployment for control plane(an EDC component)
-##TODO: setup dependency on postgres helm chart to ensure postgres is up before control plane
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -41,6 +40,30 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
 
         env:
+          - name: EDC_PARTICIPANT_ID 
+            value: "{{ .Values.config.participantId }}"
+          - name: EDC_SQL_SCHEMA_AUTOCREATE
+            value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
+          - name: WEB_HTTP_PORT
+            value: "{{ .Values.config.http.port }}"
+          - name: WEB_HTTP_PATH
+            value: "{{ .Values.config.http.path }}"
+          - name: WEB_HTTP_MANAGEMENT_PORT
+            value: "{{ .Values.config.management.port }}"
+          - name: WEB_HTTP_MANAGEMENT_PATH
+            value: "{{ .Values.config.management.path }}"
+          - name: WEB_HTTP_CONTROL_PORT
+            value: "{{ .Values.config.control.port }}"
+          - name: WEB_HTTP_CONTROL_PATH
+            value: "{{ .Values.config.control.path }}"
+          - name: WEB_HTTP_PROTOCOL_PORT
+            value: "{{ .Values.config.protocol.port }}"
+          - name: WEB_HTTP_PROTOCOL_PATH
+            value: "{{ .Values.config.protocol.path }}"
+          - name: WEB_HTTP_CATALOG_PORT
+            value: "{{ .Values.config.catalog.port }}"
+          - name: WEB_HTTP_CATALOG_PATH
+            value: "{{ .Values.config.catalog.path }}"
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"
@@ -76,8 +99,12 @@ spec:
             containerPort: {{ .Values.config.http.port }}
           - name: management
             containerPort: {{ .Values.config.management.port }}
-          - name: dsp
-            containerPort: {{ .Values.config.dsp.port }}
+          - name: control
+            containerPort: {{ .Values.config.control.port }}
+          - name: protocol
+            containerPort: {{ .Values.config.protocol.port }}
+          - name: catalog
+            containerPort: {{ .Values.config.catalog.port }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
 

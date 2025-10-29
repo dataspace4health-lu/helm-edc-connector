@@ -13,93 +13,9 @@ podAnnotations: {}
 
 # -- Extra environment variables to set in the deployment
 extraVars:
-  - name: EDC_DATA_PLANE_SELF_REGISTRATION
-    value: "true"
-
-  - name: WEB_HTTP_PORT
-    value: "8182"
-
-  - name: WEB_HTTP_PATH
-    value: "/api"
-
-  - name: WEB_HTTP_CONTROL_PORT
-    value: "9292"
-
-  - name: WEB_HTTP_CONTROL_PATH
-    value: "/api/control"
-  
-  - name: WEB_HTTP_MANAGEMENT_PORT
-    value: "8193"
-
-  - name: WEB_HTTP_MANAGEMENT_PATH
-    value: "/api/v1/management"
-
-  - name: WEB_HTTP_PROTOCOL_PORT
-    value: "19194"
-
-  - name: WEB_HTTP_PROTOCOL_PATH
-    value: "/protocol"
-
-  - name: WEB_HTTP_VERSION_PORT
-    value: "19195"
-
-  - name: WEB_HTTP_VERSION_PATH
-    value: "/version"
-
-  - name: EDC_RUNTIME_ID
-    value: "dataplane"
-
-  - name: EDC_PARTICIPANT_ID
-    value: "did:web:localhost%3A8182"
-
-
-  # should point to the control plane service name and control api port
-  - name: EDC_DPF_SELECTOR_URL
-    value: "http://edc-controlplane:8093/api/control/v1/dataplanes"
-
   # should be the same as the service name as the control plane uses it to call the dataplane apis
-  - name: EDC_HOSTNAME
-    value: "edc-dataplane"
-
-  # TODO: changes when we test the data transfer with real endpoint
-  - name: WEB_HTTP_PUBLIC_PORT
-    value: "12001"
-
-  - name: WEB_HTTP_PUBLIC_PATH
-    value: "/api/public"
-  
-  - name: EDC_DATAPLANE_PROXY_PUBLIC_ENDPOINT
-    value: "http://localhost:12001/api/public"
-
-  - name: EDC_DSP_CALLBACK_ADDRESS
-    value: "http://localhost:19194/protocol"
-  ##############################
-
-  # TODO changes when we have real keys, dids and identity hub is up and running
-  - name: EDC_TRANSFER_PROXY_TOKEN_VERIFIER_PUBLICKEY_ALIAS
-    value: "did:web:localhost%3A8182#key-1"
-
-  - name: EDC_TRANSFER_PROXY_TOKEN_SIGNER_PRIVATEKEY_ALIAS
-    value: "did:web:localhost%3A8182-alias"
-  ##############################
-
-  - name: EDC_SQL_SCHEMA_AUTOCREATE
-    value: "true"
-
-  # Add these variables for enabling CORS
-  # - name: EDC_WEB_REST_CORS_ORIGINS
-  #   #value: "http://dataspace4health.local:8086"
-  #   value: "*"
-  
-  # - name: EDC_WEB_REST_CORS_ENABLED
-  #   value: "true"
-  
-  # - name: EDC_WEB_REST_CORS_HEADERS
-  #   value: "Authorization, Content-Type, Origin, Accept, x-api-key"
-  
-  # - name: EDC_WEB_REST_CORS_METHODS
-  #   value: "GET,POST,PUT,DELETE,OPTIONS"  
-
+  # - name: EDC_HOSTNAME
+  #   value: "edc-dataplane"
 
 autoscaling:
   enabled: false
@@ -130,16 +46,52 @@ security:
   runAsGid: 0
 
 service:
+  http:
+    port: 8182 #web http port
   control:
-    port: 9292
+    port: 9292 #control port
+  management:
+    port: 8193 #control port
+  protocol:
+    port: 19194 #dsp port
+  version:
+    port: 19195 #version port
+  public:
+    port: 12001 #public port
 
 config:
-  environment: development
-  api:
-    basePath: /api
+  participantId: "did:web:dataspace4health.local" # DID:WEB identifier of the participant, will be used as runtime participantId
+  sqlSchemaAutocreate: true
+  dataplaneSelfRegistration: true
+  # should point to the control plane service name and control api port
+  dataplaneSelectorUrl: "http://dataplane-controlplane:8093/edc/cp/control/api/v1/dataplanes"
+  controlplaneReadinessUrl: "http://dataplane-controlplane:8181/edc/cp/base/api/check/health"
+  stsPrivateKeyAlias: "key-1"
+  stsPublicKeyAlias: "key-1"
+  http:
+    host: ""
+    port: 8182 #web http port
+    path: "/edc/dp/base/api"
   control:
     host: ""
     port: 9292 #control port
+    path: "/edc/dp/control/api"
+  management:
+    host: ""
+    port: 8193 #control port
+    path: "/edc/dp/management/api"
+  protocol:
+    host: ""
+    port: 19194
+    path: "/edc/dp/dsp/api"
+  version:
+    host: ""
+    port: 19195
+    path: "/edc/dp/version/api"
+  public:
+    host: ""
+    port: 12001
+    path: "/edc/dp/public/api"
 
 #TODO: check if ingress is needed for dataplane or it is only called by control plane internally.
 ingress:
@@ -147,25 +99,19 @@ ingress:
   hosts:
     - host: dataspace4health.local
       paths:
-      - path: /edc-dp
+      - path: "/edc/dp/control/api"
         port: 9292 ## control port
         pathType: Prefix
-      
   tls:
     - secretName: dataspace4health.local
       hosts:
         - dataspace4health.local
-
-  rewriteTargets:
-    - regex: ^/edc-dp/(.*)
-      replacement: /api/control/$1 # control api base path
     
 ## the health check end point is provided by the observability api of EDC
-#TODO: readiness probe to be enabled(how?). disabled for now to avoid pod crash loop and be discoverable by control plane
 readinessProbe:
   enabled: false
-  path: /api/check/health
-  port: 8080
+  path: /edc/dp/base/api/check/health
+  port: 8182
 
 secretEnv:
 

@@ -4,7 +4,7 @@ metadata:
   name: {{ include "app.chartname" . }}-appconfig
 data:
   APP_BASE_HREF.txt: |
-    {{ trimSuffix "/" .Values.config.basePath | default "/" }}
+    {{ trimSuffix "/" .Values.config.http.path | default "/" }}
   app-config.json: |
     {
       "healthCheckIntervalSeconds": 30,
@@ -17,7 +17,11 @@ data:
           "divider": true
         },
         {
+          {{- if eq (toString .Values.config.federatedCatalogEnabled) "true" }}
           "text": "Federated Catalog",
+          {{- else }}
+          "text": "Catalog",
+          {{- end }}
           "materialSymbol": "book_ribbon",
           "routerPath": "catalog",
           "viewDescription": "In the catalog view you can browse datasets of other connectors. For each dataset you can run contract negotiations to consume the data afterwards. If the selected connector has a federated catalog, the available datasets of other participants will be displayed automatically. Otherwise, you can request the catalog of other connectors configured in the dashboard. At any time you can request the catalog of unknown connectors by requesting it manually."
