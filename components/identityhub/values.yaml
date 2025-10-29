@@ -19,30 +19,6 @@ podAnnotations: {}
 
 # -- Extra environment variables to set in the deployment
 extraVars:
-  - name: WEB_HTTP_PORT
-    value: "8181"
-  - name: WEB_HTTP_PATH
-    value: "/api"
-  - name: WEB_HTTP_IDENTITY_PORT
-    value: "8182"
-  - name: WEB_HTTP_IDENTITY_PATH
-    value: "/api/identity"
-  - name: WEB_HTTP_IDENTITY_AUTH_KEY
-    value: "password"
-  - name: WEB_HTTP_CREDENTIALS_PORT
-    value: "8183"
-  - name: WEB_HTTP_CREDENTIALS_PATH
-    value: "/api/credentials"
-  - name: WEB_HTTP_DID_PORT
-    value: "8184"
-  - name: WEB_HTTP_DID_PATH
-    value: "/"
-  - name: EDC_SQL_SCHEMA_AUTOCREATE
-    value: "true"
-  - name: EDC_IH_IAM_ID
-    value: "default"
-  - name: EDC_IH_IAM_PUBLICKEY_ALIAS
-    value: "default-key"
 
 autoscaling:
   enabled: false
@@ -76,7 +52,7 @@ security:
 
 ## Port configuration for the Identity Hub services
 service:
-  api:
+  http:
     port: 8181
   identity:
     port: 8182
@@ -86,59 +62,50 @@ service:
     port: 8184
 
 config:
-  environment: development
-  api:
-    basePath: /api
+  sqlSchemaAutocreate: true
+  identityHubIamId: "dfault"
+  identityHubIamPublicKeyAlias: "default-key"
   http:
     host: ""
     port: 8181
-    timeout:
-      idle: 120s
-      read: 10s
-      write: 10s
+    path: "/edc/ih/base/api"
   identity:
     host: ""
     port: 8182
+    path: "/edc/ih/identity/api"
+    authKey: "password"
   credentials:
     host: ""
     port: 8183
+    path: "/edc/ih/credentials/api"
   did:
     host: ""
     port: 8184
-
-redis:
-  enabled: false
+    path: "/edc/ih/did/api"
 
 ingress:
   enabled: true
   hosts:
     - host: dataspace4health.local
       paths:
-        - path: /identity
+        - path: /edc/ih/identity/api
           port: 8182 ## identity api port
           pathType: Prefix
-        - path: /credentials
+        - path: /edc/ih/credentials/api
           port: 8183 ## credentials api port
           pathType: Prefix
-        - path: /did
+        - path: /edc/ih/did/api
           port: 8184 ## did port
           pathType: Prefix
   tls:
     - secretName: dataspace4health.local
       hosts:
         - dataspace4health.local
-  rewriteTargets:
-    - regex: ^/identity/(.*)
-      replacement: /api/identity/$1 # identity api path
-    - regex: ^/credentials/(.*)
-      replacement: /api/credentials/$1 # credentials api path
-    - regex: ^/did/(.*)
-      replacement: /$1 # did path
 
 ## the health check end point
 readinessProbe:
   enabled: true
-  path: /api/check/health
+  path: /edc/ih/base/api/check/health
   port: 8181
 
 secretEnv:

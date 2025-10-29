@@ -39,6 +39,30 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
 
         env:
+          - name: EDC_SQL_SCHEMA_AUTOCREATE
+            value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
+          - name: EDC_IH_IAM_ID
+            value: "{{ .Values.config.identityHubIamId }}"
+          - name: EDC_IH_IAM_PUBLICKEY_ALIAS
+            value: "{{ .Values.config.identityHubIamPublicKeyAlias }}"
+          - name: WEB_HTTP_PORT
+            value: "{{ .Values.config.http.port }}"
+          - name: WEB_HTTP_PATH
+            value: "{{ .Values.config.http.path }}"
+          - name: WEB_HTTP_IDENTITY_PORT
+            value: "{{ .Values.config.identity.port }}"
+          - name: WEB_HTTP_IDENTITY_PATH
+            value: "{{ .Values.config.identity.path }}"
+          - name: WEB_HTTP_IDENTITY_AUTH_KEY
+            value: "{{ .Values.config.identity.authKey }}"
+          - name: WEB_HTTP_CREDENTIALS_PORT
+            value: "{{ .Values.config.credentials.port }}"
+          - name: WEB_HTTP_CREDENTIALS_PATH
+            value: "{{ .Values.config.credentials.path }}"
+          - name: WEB_HTTP_DID_PORT
+            value: "{{ .Values.config.did.port }}"
+          - name: WEB_HTTP_DID_PATH
+            value: "{{ .Values.config.did.path }}"
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"
@@ -65,7 +89,7 @@ spec:
           - name: monitoring
             containerPort: {{ .Values.metrics.port }}
         {{- end }}
-          - name: api
+          - name: http
             containerPort: {{ .Values.config.http.port }}
           - name: identity
             containerPort: {{ .Values.config.identity.port }}
