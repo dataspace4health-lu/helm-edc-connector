@@ -2,8 +2,17 @@ controlplane:
   nameOverride: controlplane
   postgresql:
     nameOverride: controlplane-postgresql
+  config:
+    participantId: "did:web:dataspace4health.local"
 dataplane:
   nameOverride: dataplane
+  config:
+    participantId: "did:web:dataspace4health.local"
+    dataplaneSelfRegistration: true
+    dataplaneSelectorUrl: "http://edc-controlplane:8093/edc/cp/control/api/v1/dataplanes"
+    controlplaneReadinessUrl: "http://edc-controlplane:8181/edc/cp/base/api/check/health"
+    stsPrivateKeyAlias: "key-1"
+    stsPublicKeyAlias: "key-1"
   controlplane:
     enabled: false
     postgresql:
@@ -13,7 +22,18 @@ identityhub:
   nameOverride: identityhub
   postgresql:
     nameOverride: identityhub-postgresql
+  config:
+    identityHubIamId: "dfault"
+    identityHubIamPublicKeyAlias: "default-key"
 dashboard:
   nameOverride: dashboard
   controlplane:
     enabled: false
+  config:
+    connectorName: "Data Holder"
+    managementUrl: "https://dataspace4health.local/edc/cp/management/api" # should point to control plane management api
+    defaultUrl: "https://dataspace4health.local/edc/cp/base/api" # should point to api
+    protocolUrl: "https://dataspace4health.local/edc/cp/dsp/api" # should point to control plane dsp api
+    federatedCatalogEnabled: "false"
+    federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
+    did: "did:web:dataspace4health.local"

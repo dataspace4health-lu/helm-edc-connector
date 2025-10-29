@@ -51,11 +51,10 @@ service:
     port: 8086
 
 config:
-  environment: development
-  basePath: /edc/dashboard
   http:
     host: ""
     port: 8080 #web http port
+    path: /edc/dashboard
   # The connector config changes as per the connector type (data provider or data user)
   # For Data Provider
   connectorName: "Data Holder"
