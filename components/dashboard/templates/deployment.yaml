@@ -35,21 +35,6 @@ spec:
         - name: {{ .Values.image.pullSecrets }}
       {{- end }}
 
-      initContainers:
-        - name: wait-for-controlplane
-          image: appropriate/curl:latest
-          imagePullPolicy: IfNotPresent
-          command:
-            - "/bin/sh"
-            - "-c"
-            - |
-              echo "Waiting for control plane to be ready... {{ .Values.config.defaultUrl }}/check/health"
-              until curl -sk {{ .Values.config.defaultUrl }}/check/health | grep -q "\"isSystemHealthy\":true"; do
-                echo "Control plane is not ready yet. Retrying in 3 seconds..."
-                sleep 3
-              done
-              echo "Control plane is ready!"
-
       containers:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
