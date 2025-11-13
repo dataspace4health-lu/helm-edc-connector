@@ -44,6 +44,7 @@ pipeline {
 
                     // Split by line, remove duplicates, convert to a proper List/array
                     def images = imagesRaw.tokenize('\n').unique()
+                    echo "Got helm images: ${images}"
 
                     // Find all jobs with mame contained in the images
                     def parallelSteps = [:]
