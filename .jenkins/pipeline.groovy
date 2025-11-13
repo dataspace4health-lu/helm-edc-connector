@@ -82,8 +82,8 @@ pipeline {
         }
 
         stage('Package Helm Chart') {
-            echo "Packaging Helm chart..."
-            sh "helm package . --destination ./helm"
+            // echo "Packaging Helm chart..."
+            // sh "helm package . --destination ./helm"
         }
 
         stage('Deploy to Kubernetes') {
