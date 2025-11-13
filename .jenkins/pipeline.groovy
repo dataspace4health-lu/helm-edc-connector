@@ -35,7 +35,7 @@ pipeline {
                         helm template . \
                         | grep -E 'image:\\s' \
                         #| grep '${env.DOCKER_REGISTRY}' \
-                        | sed -E 's/.*\/([^:]+:[^"]+).*/\1/'
+                        | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
                     """,
                     returnStdout: true
                 ).trim()
