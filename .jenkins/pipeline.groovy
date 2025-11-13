@@ -36,7 +36,7 @@ pipeline {
                         script: """
                             helm template . \
                             | grep -E 'image:\\s' \
-                            #| grep '${env.DOCKER_REGISTRY}' \
+                            | grep 'ds4h-registry:5432' \
                             | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
                         """,
                         returnStdout: true
