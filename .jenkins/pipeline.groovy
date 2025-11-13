@@ -30,10 +30,10 @@ pipeline {
         stage('Build Images') {
             steps {
                 script {
+                    sh "helm dependency build"
                     // Get helm images
                     def imagesRaw = sh(
                         script: """
-                            helm dependency build
                             helm template . \
                             | grep -E 'image:\\s' \
                             #| grep '${env.DOCKER_REGISTRY}' \
