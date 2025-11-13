@@ -151,6 +151,27 @@ pipeline {
         //     }
         // }
 
+        // stage("Security Scan (Trivy)") {
+        //     steps {
+        //         sh """
+        //             helm template . | docker run --rm \
+        //                 -v /var/run/docker.sock:/var/run/docker.sock \
+        //                 -v \$PWD/built/reports/trivy:/output \
+        //                 -v \$PWD/.jenkins/trivy-html.tpl:/template.tpl \
+        //                 aquasec/trivy:latest \
+        //                 image ${IMAGE_NAME} \
+        //                 --exit-code 1 --timeout 15m --severity HIGH,CRITICAL \
+        //                 --format template --template "@/template.tpl" --output /output/trivy.html \
+        //                 -
+        //         """
+        //     }
+        //     post {
+        //         always {
+        //             archiveArtifacts 'built/reports/trivy/trivy.html'
+        //         }
+        //     }
+        // }
+
         // stage('Publish Helm') {
         //     when {
         //         expression { return params.PUBLISH_IMAGE == true }
