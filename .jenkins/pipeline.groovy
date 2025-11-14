@@ -8,6 +8,8 @@ pipeline {
     }
 
     parameters {
+        string(name: 'MICROSERVICE_ROOT_PATH', defaultValue: 'DS4H/Microservices', description: 'Base path of the microservice pipelines')
+        string(name: 'IMAGE_REGISTRY_NAME', defaultValue: 'ds4h-registry:5432', description: 'Image registry name')
         booleanParam(name: 'PUBLISH_HELM', defaultValue: false, description: 'Publish Helm after build')
     }
 
@@ -36,7 +38,7 @@ pipeline {
                         script: """
                             helm template . \
                             | grep -E 'image:\\s' \
-                            | grep 'ds4h-registry:5432' \
+                            | grep '${params.IMAGE_REGISTRY_NAME}' \
                             | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
                         """,
                         returnStdout: true
@@ -48,33 +50,8 @@ pipeline {
 
                     // Find all jobs with mame contained in the images
                     def parallelSteps = [:]
-                    // Jenkins.instance.allItems.each { job ->
-                    //     if (job.isBuildable()) {
-                    //         // Check if job.fullName matches any search term
-                    //         images.each { image ->
-                    //             if (job.fullName.contains(image.split(":")[0])) {
-                    //                 def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
-                    //                 parallelSteps[jobName] = {
-                    //                     try {
-                    //                         echo "Triggering pipeline: ${jobName}"
-                    //                         def buildInfo = build(
-                    //                             job: "${jobName}/${tag}",
-                    //                             parameters: [string(name: 'PUBLISH', value: true)],
-                    //                             wait: true,       // wait for completion
-                    //                             propagate: true   // fail this pipeline if triggered job fails
-                    //                         )
-                    //                         echo "Job ${jobName}/main finished with status: ${buildInfo.getResult()}"
-                    //                     } catch (err) {
-                    //                         echo "Error triggering job ${jobName}/main: ${err}"
-                    //                     }
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // }
-
                     images.each { image ->
-                        def jobName = "DS4H/Microservices/${image.split(":")[0]}"
+                        def jobName = "${params.MICROSERVICE_ROOT_PATH}/${image.split(":")[0]}"
                         def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
                         parallelSteps[jobName] = {
                             try {
@@ -94,9 +71,6 @@ pipeline {
 
                     if (parallelSteps && !parallelSteps.isEmpty()) {
                         parallel parallelSteps
-                    }
-                    else {
-                        echo "No matching pipelines found for search terms: ${images}"
                     }
                 }
             }
