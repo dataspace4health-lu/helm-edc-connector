@@ -48,27 +48,46 @@ pipeline {
 
                     // Find all jobs with mame contained in the images
                     def parallelSteps = [:]
-                    Jenkins.instance.allItems.each { job ->
-                        if (job.isBuildable()) {
-                            // Check if job.fullName matches any search term
-                            images.each { image ->
-                                if (job.fullName.contains(image.split(":")[0])) {
-                                    def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
-                                    parallelSteps[jobName] = {
-                                        try {
-                                            echo "Triggering pipeline: ${jobName}"
-                                            def buildInfo = build(
-                                                job: "${jobName}/${tag}",
-                                                parameters: [string(name: 'PUBLISH', value: true)],
-                                                wait: true,       // wait for completion
-                                                propagate: true   // fail this pipeline if triggered job fails
-                                            )
-                                            echo "Job ${jobName}/main finished with status: ${buildInfo.getResult()}"
-                                        } catch (err) {
-                                            echo "Error triggering job ${jobName}/main: ${err}"
-                                        }
-                                    }
-                                }
+                    // Jenkins.instance.allItems.each { job ->
+                    //     if (job.isBuildable()) {
+                    //         // Check if job.fullName matches any search term
+                    //         images.each { image ->
+                    //             if (job.fullName.contains(image.split(":")[0])) {
+                    //                 def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
+                    //                 parallelSteps[jobName] = {
+                    //                     try {
+                    //                         echo "Triggering pipeline: ${jobName}"
+                    //                         def buildInfo = build(
+                    //                             job: "${jobName}/${tag}",
+                    //                             parameters: [string(name: 'PUBLISH', value: true)],
+                    //                             wait: true,       // wait for completion
+                    //                             propagate: true   // fail this pipeline if triggered job fails
+                    //                         )
+                    //                         echo "Job ${jobName}/main finished with status: ${buildInfo.getResult()}"
+                    //                     } catch (err) {
+                    //                         echo "Error triggering job ${jobName}/main: ${err}"
+                    //                     }
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // }
+
+                    images.each { image ->
+                        def jobName = "DS4H/job/Microservices/job/${image.split(":")[0]}"
+                        def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
+                        parallelSteps[jobName] = {
+                            try {
+                                echo "Triggering pipeline: ${jobName}"
+                                def buildInfo = build(
+                                    job: "${jobName}/${tag}",
+                                    parameters: [string(name: 'PUBLISH', value: true)],
+                                    wait: true,       // wait for completion
+                                    propagate: true   // fail this pipeline if triggered job fails
+                                )
+                                echo "Job ${jobName}/main finished with status: ${buildInfo.getResult()}"
+                            } catch (err) {
+                                echo "Error triggering job ${jobName}/main: ${err}"
                             }
                         }
                     }
