@@ -9,7 +9,7 @@ pipeline {
 
     parameters {
         string(name: 'MICROSERVICE_ROOT_PATH', defaultValue: 'DS4H/Microservices', description: 'Base path of the microservice pipelines')
-        string(name: 'IMAGE_REGISTRY_NAME', defaultValue: 'ds4h-registry:5432', description: 'Image registry name')
+        string(name: 'IMAGE_REGISTRY_NAME', defaultValue: 'management.local:5000', description: 'Image registry name')
         booleanParam(name: 'PUBLISH_HELM', defaultValue: false, description: 'Publish Helm after build')
     }
 
@@ -38,7 +38,7 @@ pipeline {
                         script: """
                             helm template . \
                             | grep -E 'image:\\s' \
-                            | grep '${params.IMAGE_REGISTRY_NAME}' \
+                            # | grep '${params.IMAGE_REGISTRY_NAME}' \
                             | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
                         """,
                         returnStdout: true
