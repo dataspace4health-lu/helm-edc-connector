@@ -9,7 +9,6 @@ pipeline {
 
     parameters {
         string(name: 'MICROSERVICE_ROOT_PATH', defaultValue: 'DS4H/Microservices', description: 'Base path of the microservice pipelines')
-        string(name: 'IMAGE_REGISTRY_NAME', defaultValue: 'management.local:5000', description: 'Image registry name')
         booleanParam(name: 'PUBLISH_HELM', defaultValue: false, description: 'Publish Helm after build')
     }
 
