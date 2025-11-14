@@ -64,6 +64,30 @@ spec:
             value: "{{ .Values.config.catalog.port }}"
           - name: WEB_HTTP_CATALOG_PATH
             value: "{{ .Values.config.catalog.path }}"
+          - name: EDC_VAULT_HASHICORP_URL
+            value: "{{ .Values.config.vault.url }}"
+          # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
+          - name: EDC_VAULT_HASHICORP_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "app.chartname" . }}-vault
+                key: token
+          - name : EDC_IAM_STS_OAUTH_TOKEN_URL
+            value: "{{ .Values.config.sts.oauthTokenUrl }}"
+          - name : EDC_IAM_STS_OAUTH_CLIENT_ID
+            value: "{{ .Values.config.sts.oauthClientId }}"
+          - name : EDC_IAM_STS_OAUTH_CLIENT_SECRET_ALIAS
+            value: "{{ .Values.config.sts.oauthClientSecretAlias }}"
+            ## TODO: Move STS keys to vault
+          - name : EDC_IAM_STS_PRIVATEKEY_ALIAS
+            value: "{{ .Values.config.sts.privateKeyAlias }}"
+          - name : EDC_IAM_STS_PUBLICKEY_ID
+            value: "{{ .Values.config.sts.publicKeyId }}"
+          - name : EDC_IAM_ISSUER_ID
+            value: "{{ .Values.config.issuerId }}"
+          - name: LOG_LEVEL
+            value: "{{ .Values.log.level | default "INFO" }}"
+
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"

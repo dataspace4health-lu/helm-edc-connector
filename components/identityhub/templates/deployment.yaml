@@ -63,6 +63,19 @@ spec:
             value: "{{ .Values.config.did.port }}"
           - name: WEB_HTTP_DID_PATH
             value: "{{ .Values.config.did.path }}"
+          - name: WEB_HTTP_STS_PORT
+            value: "{{ .Values.config.sts.port }}"
+          - name: WEB_HTTP_STS_PATH
+            value: "{{ .Values.config.sts.path }}"
+          - name: EDC_VAULT_HASHICORP_URL
+            value: "{{ .Values.config.vault.url }}"
+          - name: EDC_VAULT_HASHICORP_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "app.chartname" . }}-vault
+                key: token
+          - name: LOG_LEVEL
+            value: "{{ .Values.log.level | default "INFO" }}"
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"
@@ -79,6 +92,11 @@ spec:
           - name: EDC_DATASOURCE_DEFAULT_URL
             value: {{ .Values.postgresql.url }}
         {{- end }}
+          - name: EDC_DATASOURCE_DEFAULT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "app.chartname" . }}-postgresql
+                key: password
           - name: EDC_DATASOURCE_DEFAULT_USER
             value: {{ .Values.postgresql.auth.username }}
 {{- if .Values.extraVars }}
@@ -97,6 +115,8 @@ spec:
             containerPort: {{ .Values.config.credentials.port }}
           - name: did
             containerPort: {{ .Values.config.did.port }}
+          - name: sts
+            containerPort: {{ .Values.config.sts.port }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
 
