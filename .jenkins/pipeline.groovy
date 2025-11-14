@@ -74,7 +74,7 @@ pipeline {
                     // }
 
                     images.each { image ->
-                        def jobName = "DS4H/job/Microservices/job/${image.split(":")[0]}"
+                        def jobName = "DS4H/Microservices/${image.split(":")[0]}"
                         def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
                         parallelSteps[jobName] = {
                             try {
@@ -87,7 +87,7 @@ pipeline {
                                 )
                                 echo "Job ${jobName}/main finished with status: ${buildInfo.getResult()}"
                             } catch (err) {
-                                echo "Error triggering job ${jobName}/main: ${err}"
+                                error("Error triggering job ${jobName}/main: ${err}")
                             }
                         }
                     }
