@@ -54,7 +54,7 @@ pipeline {
                         def jobName = "${params.MICROSERVICE_ROOT_PATH}/${image.split(":")[0]}"
                         def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
                         parallelSteps[image] = {
-                            try {
+                            // try {
                                 echo "Triggering pipeline: ${jobName}"
                                 parallelResults["${jobName}/${tag}"] = build(
                                     job: "${jobName}/${tag}",
@@ -62,17 +62,17 @@ pipeline {
                                     wait: true,       // wait for completion
                                     propagate: false   // fail this pipeline if triggered job fails
                                 )
-                            } catch (err) {
-                                if (err != "No item named ${jobName}/${tag} found")
-                                {
-                                    catchError(buildResult: 'SUCCESS', stageResult: 'ABORTED') {
-                                        error("No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency.")
-                                    }
-                                }
-                                else {
-                                    error("Error triggering job ${jobName}/${tag}: ${err}")
-                                }
-                            }
+                            // } catch (err) {
+                            //     if (err != "No item named ${jobName}/${tag} found")
+                            //     {
+                            //         catchError(buildResult: 'SUCCESS', stageResult: 'ABORTED') {
+                            //             error("No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency.")
+                            //         }
+                            //     }
+                            //     else {
+                            //         error("Error triggering job ${jobName}/${tag}: ${err}")
+                            //     }
+                            // }
                         }
                     }
 
