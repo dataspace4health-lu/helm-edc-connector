@@ -34,11 +34,11 @@ pipeline {
                 script {
                     sh "helm dependency build"
                     // Get helm images
+                    // | grep '${params.IMAGE_REGISTRY_NAME}' \
                     def imagesRaw = sh(
                         script: """
                             helm template . \
                             | grep -E 'image:\\s' \
-                            # | grep '${params.IMAGE_REGISTRY_NAME}' \
                             | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
                         """,
                         returnStdout: true
