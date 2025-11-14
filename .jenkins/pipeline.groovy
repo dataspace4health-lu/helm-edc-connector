@@ -49,19 +49,19 @@ pipeline {
 
                     // Find all jobs with mame contained in the images
                     def parallelSteps = [:]
+                    def parallelResults = [:]
                     images.each { image ->
                         def jobName = "${params.MICROSERVICE_ROOT_PATH}/${image.split(":")[0]}"
                         def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
                         parallelSteps[image] = {
                             try {
                                 echo "Triggering pipeline: ${jobName}"
-                                def buildInfo = build(
+                                parallelResults[${jobName}/${tag}] = build(
                                     job: "${jobName}/${tag}",
                                     parameters: [string(name: 'PUBLISH', value: "true")],
                                     wait: true,       // wait for completion
-                                    propagate: true   // fail this pipeline if triggered job fails
+                                    propagate: false   // fail this pipeline if triggered job fails
                                 )
-                                echo "Job ${jobName}/${tag} finished with status: ${buildInfo.getResult()}"
                             } catch (err) {
                                 if (err != "No item named ${jobName}/${tag} found")
                                 {
@@ -78,6 +78,22 @@ pipeline {
 
                     if (parallelSteps && !parallelSteps.isEmpty()) {
                         parallel parallelSteps
+
+                        // Evaluate results
+                        def finalStatus = 'SUCCESS'
+                        parallelResults.each { name, res ->
+                            echo "Pipeline ${name} result: ${res.result}"
+                            if (res.result == 'FAILURE') {
+                                finalStatus = 'FAILURE'
+                            }
+                        }
+
+                        // If any FAILURE → fail main pipeline
+                        if (finalStatus == 'FAILURE') {
+                            error("Main pipeline failed because at least one child failed.")
+                        } else {
+                            echo "Main pipeline succeeded (aborted children ignored)."
+                        }
                     }
                 }
             }
