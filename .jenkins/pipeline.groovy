@@ -53,7 +53,7 @@ pipeline {
                     images.each { image ->
                         def jobName = "${params.MICROSERVICE_ROOT_PATH}/${image.split(":")[0]}"
                         def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
-                        parallelSteps[jobName] = {
+                        parallelSteps[image] = {
                             try {
                                 echo "Triggering pipeline: ${jobName}"
                                 def buildInfo = build(
