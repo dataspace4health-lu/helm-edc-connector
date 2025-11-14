@@ -81,7 +81,7 @@ pipeline {
                                 echo "Triggering pipeline: ${jobName}"
                                 def buildInfo = build(
                                     job: "${jobName}/${tag}",
-                                    parameters: [string(name: 'PUBLISH', value: true)],
+                                    parameters: [string(name: 'PUBLISH', value: "true")],
                                     wait: true,       // wait for completion
                                     propagate: true   // fail this pipeline if triggered job fails
                                 )
