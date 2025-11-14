@@ -14,9 +14,11 @@ pipeline {
 
     stages {
         stage('Package Helm Chart') {
-            echo "Packaging Helm chart..."
-            sh "helm dependency update"
-            sh "helm package . --destination ./helm"
+            steps {
+                echo "Packaging Helm chart..."
+                sh "helm dependency update"
+                sh "helm package . --destination ./helm"
+            }
         }
         
         stage('Lint') {
