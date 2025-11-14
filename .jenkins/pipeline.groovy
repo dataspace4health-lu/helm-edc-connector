@@ -66,9 +66,8 @@ pipeline {
                             } catch (err) {
                                 if (err != "No item named ${jobName}/${tag} found")
                                 {
-                                    echo "No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency."
-                                    catchError(buildResult: 'ABORTED', stageResult: 'ABORTED') {
-                                        sh 'exit 1'
+                                    catchError(buildResult: 'SUCCESS', stageResult: 'ABORTED') {
+                                        error("No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency.")
                                     }
                                 }
                                 else {
