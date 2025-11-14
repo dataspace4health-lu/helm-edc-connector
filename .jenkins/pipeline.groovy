@@ -13,6 +13,12 @@ pipeline {
     }
 
     stages {
+        stage('Package Helm Chart') {
+            echo "Packaging Helm chart..."
+            sh "helm dependency update"
+            sh "helm package . --destination ./helm"
+        }
+        
         stage('Lint') {
             steps {
                 echo "Linting Helm chart"
@@ -28,80 +34,74 @@ pipeline {
             }
         }
         
-        stage('Build Images') {
-            steps {
-                script {
-                    sh "helm dependency build"
-                    // Get helm images
-                    // | grep '${params.IMAGE_REGISTRY_NAME}' \
-                    def imagesRaw = sh(
-                        script: """
-                            helm template . \
-                            | grep -E 'image:\\s' \
-                            | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
-                        """,
-                        returnStdout: true
-                    ).trim()
+        // stage('Build Images') {
+        //     steps {
+        //         script {
+        //             sh "helm dependency build"
+        //             // Get helm images
+        //             def imagesRaw = sh(
+        //                 script: """
+        //                     helm template . \
+        //                     | grep -E 'image:\\s' \
+        //                     | sed -E 's/.*\\/([^:]+:[^"]+).*/\\1/'
+        //                 """,
+        //                 returnStdout: true
+        //             ).trim()
 
-                    // Split by line, remove duplicates, convert to a proper List/array
-                    def images = imagesRaw.tokenize('\n').unique()
-                    echo "Got helm images: ${images}"
+        //             // Split by line, remove duplicates, convert to a proper List/array
+        //             def images = imagesRaw.tokenize('\n').unique()
+        //             echo "Got helm images: ${images}"
 
-                    // Find all jobs with mame contained in the images
-                    def parallelSteps = [:]
-                    def parallelResults = [:]
-                    images.each { image ->
-                        def jobName = "${params.MICROSERVICE_ROOT_PATH}/${image.split(":")[0]}"
-                        def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
-                        parallelSteps[image] = {
-                            // try {
-                                echo "Triggering pipeline: ${jobName}"
-                                parallelResults["${jobName}/${tag}"] = build(
-                                    job: "${jobName}/${tag}",
-                                    parameters: [string(name: 'PUBLISH', value: "true")],
-                                    wait: true,       // wait for completion
-                                    propagate: false   // fail this pipeline if triggered job fails
-                                )
-                            // } catch (err) {
-                            //     if (err != "No item named ${jobName}/${tag} found")
-                            //     {
-                            //         catchError(buildResult: 'SUCCESS', stageResult: 'ABORTED') {
-                            //             error("No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency.")
-                            //         }
-                            //     }
-                            //     else {
-                            //         error("Error triggering job ${jobName}/${tag}: ${err}")
-                            //     }
-                            // }
-                        }
-                    }
+        //             // Find all jobs with mame contained in the images
+        //             def parallelSteps = [:]
+        //             def parallelResults = [:]
+        //             images.each { image ->
+        //                 def jobName = "${params.MICROSERVICE_ROOT_PATH}/${image.split(":")[0]}"
+        //                 def tag = image.split(":")[1] == "latest" ? "main" : "tags/v${tag}"
+        //                 parallelSteps[image] = {
+        //                     try {
+        //                         echo "Triggering pipeline: ${jobName}"
+        //                         parallelResults["${jobName}/${tag}"] = build(
+        //                             job: "${jobName}/${tag}",
+        //                             parameters: [string(name: 'PUBLISH', value: "true")],
+        //                             wait: true,       // wait for completion
+        //                             propagate: true   // fail this pipeline if triggered job fails
+        //                         )
+        //                     } catch (err) {
+        //                         if (err != "No item named ${jobName}/${tag} found")
+        //                         {
+        //                             catchError(buildResult: 'SUCCESS', stageResult: 'ABORTED') {
+        //                                 error("No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency.")
+        //                             }
+        //                         }
+        //                         else {
+        //                             error("Error triggering job ${jobName}/${tag}: ${err}")
+        //                         }
+        //                     }
+        //                 }
+        //             }
 
-                    if (parallelSteps && !parallelSteps.isEmpty()) {
-                        parallel parallelSteps
+        //             if (parallelSteps && !parallelSteps.isEmpty()) {
+        //                 parallel parallelSteps
 
-                        // Evaluate results
-                        def finalStatus = 'SUCCESS'
-                        parallelResults.each { name, res ->
-                            echo "Pipeline ${name} result: ${res.result}"
-                            if (res.result == 'FAILURE') {
-                                finalStatus = 'FAILURE'
-                            }
-                        }
+        //                 // Evaluate results
+        //                 def finalStatus = 'SUCCESS'
+        //                 parallelResults.each { name, res ->
+        //                     echo "Pipeline ${name} result: ${res.result}"
+        //                     if (res.result == 'FAILURE') {
+        //                         finalStatus = 'FAILURE'
+        //                     }
+        //                 }
 
-                        // If any FAILURE → fail main pipeline
-                        if (finalStatus == 'FAILURE') {
-                            error("Main pipeline failed because at least one child failed.")
-                        } else {
-                            echo "Main pipeline succeeded (aborted children ignored)."
-                        }
-                    }
-                }
-            }
-        }
-
-        // stage('Package Helm Chart') {
-        //     // echo "Packaging Helm chart..."
-        //     // sh "helm package . --destination ./helm"
+        //                 // If any FAILURE → fail main pipeline
+        //                 if (finalStatus == 'FAILURE') {
+        //                     error("Main pipeline failed because at least one child failed.")
+        //                 } else {
+        //                     echo "Main pipeline succeeded (aborted children ignored)."
+        //                 }
+        //             }
+        //         }
+        //     }
         // }
 
         // stage('Deploy to Kubernetes') {
