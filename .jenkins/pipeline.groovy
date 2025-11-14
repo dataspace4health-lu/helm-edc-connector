@@ -62,9 +62,15 @@ pipeline {
                                     wait: true,       // wait for completion
                                     propagate: true   // fail this pipeline if triggered job fails
                                 )
-                                echo "Job ${jobName}/main finished with status: ${buildInfo.getResult()}"
+                                echo "Job ${jobName}/${tag} finished with status: ${buildInfo.getResult()}"
                             } catch (err) {
-                                error("Error triggering job ${jobName}/main: ${err}")
+                                if (err != "No item named ${jobName}/${tag} found")
+                                {
+                                    echo "No pipeline was found with name ${jobName}/${tag}. Assuming this is an external dependency."
+                                }
+                                else {
+                                    error("Error triggering job ${jobName}/${tag}: ${err}")
+                                }
                             }
                         }
                     }
