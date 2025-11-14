@@ -56,7 +56,7 @@ pipeline {
                         parallelSteps[image] = {
                             try {
                                 echo "Triggering pipeline: ${jobName}"
-                                parallelResults[${jobName}/${tag}] = build(
+                                parallelResults["${jobName}/${tag}"] = build(
                                     job: "${jobName}/${tag}",
                                     parameters: [string(name: 'PUBLISH', value: "true")],
                                     wait: true,       // wait for completion
