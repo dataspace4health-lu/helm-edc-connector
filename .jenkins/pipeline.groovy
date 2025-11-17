@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        HELM_NAME = "${env.JOB_NAME.tokenize('/')[-2..-1].join('-').toLowerCase()}"
+        HELM_NAME = "${env.JOB_NAME.tokenize('/').dropRight(1).takeRight(1).join('-').toLowerCase()}"
     }
 
     parameters {
