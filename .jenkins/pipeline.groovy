@@ -167,7 +167,7 @@ pipeline {
         }
 
         stage('Post-Deployment Verification') {
-            step {
+            steps {
                 script {
                     echo "Checking rollout status..."
                     sh """
