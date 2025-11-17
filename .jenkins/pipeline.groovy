@@ -112,6 +112,7 @@ pipeline {
                     // nodes: number of worker nodes
                     def createCluster = { nodes = 0 -> 
                         def cluster = [:]
+                        env.KUBECONFIG = ".jenkins/kubeconfig"
                         cluster.name = "${env.HELM_NAME}-${env.BUILD_ID}"
                         // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
                         // TODO env.KUBECONFIG, env.DNS_NAME
@@ -119,8 +120,8 @@ pipeline {
                         def registryIP = sh(script: "getent hosts ds4h-registry | awk '{print \$1}'", returnStdout: true).trim()
                         // sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --registry-use ds4h-registry:5432 --kubeconfig-update-default=false --kubeconfig-switch-context=false"
                         sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --kubeconfig-update-default=false --kubeconfig-switch-context=false"
-                        sh "k3d kubeconfig get ${cluster.name} > .jenkins/kubeconfig"
-                        sh "chmod 600 .jenkins/kubeconfig"
+                        sh "k3d kubeconfig get ${cluster.name} > ${env.KUBECONFIG}"
+                        sh "chmod 600 ${env.KUBECONFIG}"
                         cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
                         cluster.server_ip = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
                         sh """
