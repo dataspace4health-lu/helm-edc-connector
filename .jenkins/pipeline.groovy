@@ -109,7 +109,7 @@ pipeline {
                 // creates a k3d cluster
                 // returns the cluster object
                 // nodes: number of worker nodes
-                def createCluster(nodes = 0){
+                def createCluster { nodes = 0 -> 
                     def cluster = [:]
                     cluster.name = "${env.HELM_NAME}-${env.BUILD_ID}"
                     // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
