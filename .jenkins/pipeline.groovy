@@ -105,74 +105,78 @@ pipeline {
         // }
 
         stage('Deploy to Kubernetes') {
-            script {
-                // creates a k3d cluster
-                // returns the cluster object
-                // nodes: number of worker nodes
-                def createCluster = { nodes = 0 -> 
-                    def cluster = [:]
-                    cluster.name = "${env.HELM_NAME}-${env.BUILD_ID}"
-                    // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
-                    // TODO env.KUBECONFIG, env.DNS_NAME
-                    sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --registry-use ds4h-registry:5432 --kubeconfig-update-default=false --kubeconfig-switch-context=false"
-                    sh "k3d kubeconfig get ${cluster.name} > .jenkins/kubeconfig"
-                    sh "chmod 600 .jenkins/kubeconfig"
-                    cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
-                    cluster.server_ip = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
-                    sh """
-                    until kubectl -n kube-system get configmap coredns > /dev/null 2>&1; do
-                        echo "Waiting for ConfigMap 'coredns' to be available..."
-                        sleep 5
-                    done
-                    """
-                    // def secrets = [
-                    //     [path: 'secret/jenkins/ds4h/azure-registry-ro-sp', secretValues: 
-                    //         [
-                    //             [envVar: 'APP_ID', vaultKey: 'app-id'], 
-                    //             [envVar: 'SP_PASSWORD', vaultKey: 'password']
-                    //         ]
-                    //     ]
-                    // ]
-                    // withVault([vaultSecrets: secrets]) {
-                    //     sh("kubectl create secret docker-registry acr-creds --docker-server=${params.registry_domain} --docker-username=$APP_ID --docker-password=$SP_PASSWORD")
-                    // }
-                    sh "pwd"
-                    sh "kubectl apply -f .jenkins/traefik-config.yaml"
-                    sh "helm repo add jetstack https://charts.jetstack.io --force-update"
-                    sh "helm repo update"
-                    sh "helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.14.4 --set installCRDs=true --timeout 10m"
-                    sh "kubectl apply -f .jenkins/ca-issuer.yaml"
-                    sh "kubectl apply -f .jenkins/ca-certificate.yaml"
-                    sh "kubectl apply -f .jenkins/issuer.yaml"
-                    sh "kubectl apply -f .jenkins/certificate.yaml"
-                    sh "kubectl wait --for=condition=Ready certificate/dataspace4health.local --timeout=300s"
-                    sh """
-                    kubectl -n kube-system get cm coredns -o yaml | \
-                    sed 's#NodeHosts: |#NodeHosts: |\\n    ${cluster.server_ip} dataspace4health.local#' | \
-                    kubectl apply -f -
-                    """
-                    return cluster
-                }
+            steps {
+                script {
+                    // creates a k3d cluster
+                    // returns the cluster object
+                    // nodes: number of worker nodes
+                    def createCluster = { nodes = 0 -> 
+                        def cluster = [:]
+                        cluster.name = "${env.HELM_NAME}-${env.BUILD_ID}"
+                        // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
+                        // TODO env.KUBECONFIG, env.DNS_NAME
+                        sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --registry-use ds4h-registry:5432 --kubeconfig-update-default=false --kubeconfig-switch-context=false"
+                        sh "k3d kubeconfig get ${cluster.name} > .jenkins/kubeconfig"
+                        sh "chmod 600 .jenkins/kubeconfig"
+                        cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
+                        cluster.server_ip = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
+                        sh """
+                        until kubectl -n kube-system get configmap coredns > /dev/null 2>&1; do
+                            echo "Waiting for ConfigMap 'coredns' to be available..."
+                            sleep 5
+                        done
+                        """
+                        // def secrets = [
+                        //     [path: 'secret/jenkins/ds4h/azure-registry-ro-sp', secretValues: 
+                        //         [
+                        //             [envVar: 'APP_ID', vaultKey: 'app-id'], 
+                        //             [envVar: 'SP_PASSWORD', vaultKey: 'password']
+                        //         ]
+                        //     ]
+                        // ]
+                        // withVault([vaultSecrets: secrets]) {
+                        //     sh("kubectl create secret docker-registry acr-creds --docker-server=${params.registry_domain} --docker-username=$APP_ID --docker-password=$SP_PASSWORD")
+                        // }
+                        sh "pwd"
+                        sh "kubectl apply -f .jenkins/traefik-config.yaml"
+                        sh "helm repo add jetstack https://charts.jetstack.io --force-update"
+                        sh "helm repo update"
+                        sh "helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.14.4 --set installCRDs=true --timeout 10m"
+                        sh "kubectl apply -f .jenkins/ca-issuer.yaml"
+                        sh "kubectl apply -f .jenkins/ca-certificate.yaml"
+                        sh "kubectl apply -f .jenkins/issuer.yaml"
+                        sh "kubectl apply -f .jenkins/certificate.yaml"
+                        sh "kubectl wait --for=condition=Ready certificate/dataspace4health.local --timeout=300s"
+                        sh """
+                        kubectl -n kube-system get cm coredns -o yaml | \
+                        sed 's#NodeHosts: |#NodeHosts: |\\n    ${cluster.server_ip} dataspace4health.local#' | \
+                        kubectl apply -f -
+                        """
+                        return cluster
+                    }
 
-                def cluster = createCluster(2)
-                // echo "Deploying helm to Kubernetes ..."
-                sh """
-                    helm upgrade --install edc-connector helm/*.tgz \
-                        --namespace default \
-                        --kube-context .jenkins/kubeconfig
-                """
+                    def cluster = createCluster(2)
+                    // echo "Deploying helm to Kubernetes ..."
+                    sh """
+                        helm upgrade --install edc-connector helm/*.tgz \
+                            --namespace default \
+                            --kube-context .jenkins/kubeconfig
+                    """
+                }
             }
         }
 
         stage('Post-Deployment Verification') {
-            script {
-                echo "Checking rollout status..."
-                sh """
-                    kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-controlplane --timeout=120s
-                    kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-dataplane --timeout=120s
-                    kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-identityhub --timeout=120s
-                    kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-dashboard --timeout=120s
-                """
+            step {
+                script {
+                    echo "Checking rollout status..."
+                    sh """
+                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-controlplane --timeout=120s
+                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-dataplane --timeout=120s
+                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-identityhub --timeout=120s
+                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-dashboard --timeout=120s
+                    """
+                }
             }
         }
 
