@@ -243,7 +243,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts 'built/reports/trivy/trivy-report.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'built/reports/trivy/trivy-report.html', allowEmptyArchive: true
                 }
             }
         }
