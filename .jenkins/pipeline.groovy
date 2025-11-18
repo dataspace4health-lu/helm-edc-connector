@@ -161,12 +161,8 @@ pipeline {
                     def cluster = createCluster(2)
                     // echo "Deploying helm to Kubernetes ..."
                     sh """
-                        whoami
-                        ls -al .jenkins
-                        cat ${env.KUBECONFIG}
                         helm upgrade --install edc-connector helm/*.tgz \
-                            --namespace default \
-                            --kube-context ${env.KUBECONFIG}
+                            --namespace default
                     """
                 }
             }
