@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         HELM_NAME = "${env.JOB_NAME.tokenize('/').dropRight(1).takeRight(1).join('-').toLowerCase()}"
+        KUBECONFIG = ".jenkins/kubeconfig"
+        K3D_CLUSTER_NAME = "${env.HELM_NAME}-${env.BUILD_ID}"
     }
 
     parameters {
@@ -112,18 +114,17 @@ pipeline {
                     // nodes: number of worker nodes
                     def createCluster = { nodes = 0 -> 
                         def cluster = [:]
-                        env.KUBECONFIG = ".jenkins/kubeconfig"
-                        cluster.name = "${env.HELM_NAME}-${env.BUILD_ID}"
+
                         // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
                         // TODO env.KUBECONFIG, env.DNS_NAME
 
                         def registryIP = sh(script: "getent hosts ds4h-registry | awk '{print \$1}'", returnStdout: true).trim()
-                        // sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --registry-use ds4h-registry:5432 --kubeconfig-update-default=false --kubeconfig-switch-context=false"
-                        sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --kubeconfig-update-default=false --kubeconfig-switch-context=false"
-                        sh "k3d kubeconfig get ${cluster.name} > ${env.KUBECONFIG}"
+                        // sh "k3d cluster create ${env.K3D_CLUSTER_NAME} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --registry-use ds4h-registry:5432 --kubeconfig-update-default=false --kubeconfig-switch-context=false"
+                        sh "k3d cluster create ${env.K3D_CLUSTER_NAME} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --kubeconfig-update-default=false --kubeconfig-switch-context=false"
+                        sh "k3d kubeconfig get ${env.K3D_CLUSTER_NAME} > ${env.KUBECONFIG}"
                         sh "chmod 600 ${env.KUBECONFIG}"
-                        cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
-                        cluster.server_ip = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
+                        cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${env.K3D_CLUSTER_NAME}-server-0", returnStdout: true).trim()
+                        cluster.server_ip = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' k3d-${env.K3D_CLUSTER_NAME}-server-0", returnStdout: true).trim()
                         sh """
                         until kubectl -n kube-system get configmap coredns > /dev/null 2>&1; do
                             echo "Waiting for ConfigMap 'coredns' to be available..."
@@ -182,71 +183,70 @@ pipeline {
             }
         }
 
-        // stage('Test') {
-        //     // steps {
-        //     //     echo "Running Playwright end-to-end tests..."
+        stage('Test') {
+            steps {
+                echo "Running Playwright end-to-end tests..."
 
-        //     //     dir('tests') { // assuming your Playwright tests are in ./tests
-        //     //         sh """
-        //     //             npm ci
-        //     //             npx playwright install --with-deps
-        //     //             npx playwright test --reporter=html
-        //     //         """
-        //     //     }
-        //     // }
-        //     // post {
-        //     //     always {
-        //     //         archiveArtifacts artifacts: 'build/reports/playwright/test-report.html', allowEmptyArchive: true
-        //     //     }
-        //     // }
-        // }
+                // dir('tests') { // assuming your Playwright tests are in ./tests
+                //     sh """
+                //         npm ci
+                //         npx playwright install --with-deps
+                //         npx playwright test --reporter=html
+                //     """
+                // }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'build/reports/playwright/test-report.html', allowEmptyArchive: true
+                }
+            }
+        }
 
-        // stage("Code Quality Check (SonarQube)") {
-        //     steps {
-        //         withSonarQubeEnv('sonar') {
-        //             script {
-        //                 def scannerHome = tool "sonar"
-        //                 sh """
-        //                     ${scannerHome}/bin/sonar-scanner -X \
-        //                         -Dsonar.projectKey=${DOCKER_IMAGE} \
-        //                         -Dsonar.sources=. \
-        //                         -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
-        //                 """
+        stage("Code Quality Check (SonarQube)") {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    script {
+                        def scannerHome = tool "sonar"
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner -X \
+                                -Dsonar.projectKey=${HELM_NAME} \
+                                -Dsonar.sources=helm \
+                                -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
+                        """
 
-        //                 // // Wait for the Quality Gate result
-        //                 // timeout(time: 10, unit: 'MINUTES') {
-        //                 //     def qg = waitForQualityGate()
-        //                 //     if (qg.status != 'OK') {
-        //                 //         error "❌ Quality Gate failed: ${qg.status}"
-        //                 //     } else {
-        //                 //         echo "✅ Quality Gate passed: ${qg.status}"
-        //                 //     }
-        //                 // }
-        //             }
-        //         }
-        //     }
-        // }
+                        // // Wait for the Quality Gate result
+                        // timeout(time: 10, unit: 'MINUTES') {
+                        //     def qg = waitForQualityGate()
+                        //     if (qg.status != 'OK') {
+                        //         error "❌ Quality Gate failed: ${qg.status}"
+                        //     } else {
+                        //         echo "✅ Quality Gate passed: ${qg.status}"
+                        //     }
+                        // }
+                    }
+                }
+            }
+        }
 
-        // stage("Security Scan (Trivy)") {
-        //     steps {
-        //         sh """
-        //             helm template . | docker run --rm \
-        //                 -v /var/run/docker.sock:/var/run/docker.sock \
-        //                 -v \$PWD/built/reports/trivy:/output \
-        //                 -v \$PWD/.jenkins/trivy-html.tpl:/template.tpl \
-        //                 aquasec/trivy:latest \
-        //                 image ${IMAGE_NAME} \
-        //                 --exit-code 1 --timeout 15m --severity HIGH,CRITICAL \
-        //                 --format template --template "@/template.tpl" --output /output/trivy.html \
-        //                 -
-        //         """
-        //     }
-        //     post {
-        //         always {
-        //             archiveArtifacts 'built/reports/trivy/trivy.html'
-        //         }
-        //     }
-        // }
+        stage("Security Scan (Trivy)") {
+            steps {
+                sh """
+                    helm template . | docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v \$PWD/built/reports/trivy:/output \
+                        -v \$PWD/.jenkins/trivy-html.tpl:/template.tpl \
+                        aquasec/trivy:latest \
+                        --exit-code 1 --timeout 15m --severity HIGH,CRITICAL \
+                        --format template --template "@/template.tpl" --output /output/trivy.html \
+                        -
+                """
+            }
+            post {
+                always {
+                    archiveArtifacts 'built/reports/trivy/trivy-report.html', allowEmptyArchive: true
+                }
+            }
+        }
 
         // stage('Publish Helm') {
         //     when {
@@ -259,6 +259,9 @@ pipeline {
         always {
             script {
                 cleanWs()
+
+                // Delete k3d cluster
+                sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
                 
                 // Detect if build was triggered manually or by SCM
                 def causes = currentBuild.getBuildCauses()
