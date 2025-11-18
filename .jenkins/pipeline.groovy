@@ -155,6 +155,8 @@ pipeline {
                         kubectl -n kube-system get cm coredns -o yaml | \
                         sed 's#NodeHosts: |#NodeHosts: |\\n    ${cluster.server_ip} dataspace4health.local#' | \
                         kubectl apply -f -
+                        ls -al .
+                        ls -al .jenkins
                         """
                         return cluster
                     }
@@ -162,10 +164,11 @@ pipeline {
                     def cluster = createCluster(2)
                     // echo "Deploying helm to Kubernetes ..."
                     sh """
-                        sh "cat ${env.KUBECONFIG}"
+                        ls -al .
+                        ls -al .jenkins
                         helm upgrade --install edc-connector helm/*.tgz \
                             --namespace default \
-                            --kube-context .jenkins/kubeconfig
+                            --kube-context ${env.KUBECONFIG}
                     """
                 }
             }
