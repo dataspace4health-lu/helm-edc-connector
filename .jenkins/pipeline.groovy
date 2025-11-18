@@ -173,10 +173,10 @@ pipeline {
                 script {
                     echo "Checking rollout status..."
                     sh """
-                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-controlplane --timeout=120s
-                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-dataplane --timeout=120s
-                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-identityhub --timeout=120s
-                        kubectl --context .jenkins/kubeconfig -n default rollout status deployment/edc-dashboard --timeout=120s
+                        kubectl -n default rollout status deployment/edc-controlplane --timeout=120s
+                        kubectl -n default rollout status deployment/edc-dataplane --timeout=120s
+                        kubectl -n default rollout status deployment/edc-identityhub --timeout=120s
+                        kubectl -n default rollout status deployment/edc-dashboard --timeout=120s
                     """
                 }
             }
