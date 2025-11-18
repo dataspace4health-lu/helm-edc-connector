@@ -122,7 +122,6 @@ pipeline {
                         sh "k3d cluster create ${cluster.name} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --kubeconfig-update-default=false --kubeconfig-switch-context=false"
                         sh "k3d kubeconfig get ${cluster.name} > ${env.KUBECONFIG}"
                         sh "chmod 600 ${env.KUBECONFIG}"
-                        sh "cat ${env.KUBECONFIG}"
                         cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
                         cluster.server_ip = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' k3d-${cluster.name}-server-0", returnStdout: true).trim()
                         sh """
@@ -163,6 +162,7 @@ pipeline {
                     def cluster = createCluster(2)
                     // echo "Deploying helm to Kubernetes ..."
                     sh """
+                        sh "cat ${env.KUBECONFIG}"
                         helm upgrade --install edc-connector helm/*.tgz \
                             --namespace default \
                             --kube-context .jenkins/kubeconfig
