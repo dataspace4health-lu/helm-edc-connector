@@ -141,7 +141,6 @@ pipeline {
                         // withVault([vaultSecrets: secrets]) {
                         //     sh("kubectl create secret docker-registry acr-creds --docker-server=${params.registry_domain} --docker-username=$APP_ID --docker-password=$SP_PASSWORD")
                         // }
-                        sh "pwd"
                         sh "kubectl apply -f .jenkins/traefik-config.yaml"
                         sh "helm repo add jetstack https://charts.jetstack.io --force-update"
                         sh "helm repo update"
@@ -155,8 +154,6 @@ pipeline {
                         kubectl -n kube-system get cm coredns -o yaml | \
                         sed 's#NodeHosts: |#NodeHosts: |\\n    ${cluster.server_ip} dataspace4health.local#' | \
                         kubectl apply -f -
-                        ls -al .
-                        ls -al .jenkins
                         """
                         return cluster
                     }
@@ -164,8 +161,9 @@ pipeline {
                     def cluster = createCluster(2)
                     // echo "Deploying helm to Kubernetes ..."
                     sh """
-                        ls -al .
+                        whoami
                         ls -al .jenkins
+                        cat ${env.KUBECONFIG}
                         helm upgrade --install edc-connector helm/*.tgz \
                             --namespace default \
                             --kube-context ${env.KUBECONFIG}
