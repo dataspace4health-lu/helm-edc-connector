@@ -274,9 +274,9 @@ pipeline {
                 cleanWs()
 
                 // Delete published images (if any)
-                env.IMAGES.split(",").each( image -> {
+                env.IMAGES.split(",").each{ image ->
                     // sh "docker push ${image}"
-                })
+                }
                 // Delete k3d cluster
                 sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
 
