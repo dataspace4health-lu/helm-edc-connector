@@ -177,12 +177,37 @@ pipeline {
             steps {
                 script {
                     echo "Checking rollout status..."
-                    sh """
-                        kubectl -n default rollout status deployment/edc-connector-dashboard --timeout=120s
-                        kubectl -n default rollout status deployment/edc-connector-identityhub --timeout=120s
-                        kubectl -n default rollout status deployment/edc-connector-controlplane --timeout=120s
-                        kubectl -n default rollout status deployment/edc-connector-dataplane --timeout=120s
-                    """
+                    def deployments = [
+                        "edc-connector-dashboard",
+                        "edc-connector-identityhub",
+                        "edc-connector-controlplane",
+                        "edc-connector-dataplane"
+                    ]
+
+                    for (d in deployments) {
+                        def status = sh(
+                            script: "kubectl -n default rollout status deployment/${d} --timeout=120s",
+                            returnStatus: true
+                        )
+
+                        if (status != 0) {
+                            echo "❌ Rollout failed for ${d}. Fetching events and pod details..."
+                            sh """
+                                echo "--- Events ---"
+                                kubectl -n default get events --sort-by=.metadata.creationTimestamp | tail -n 20
+
+                                echo "--- Pods for ${d} ---"
+                                kubectl -n default get pods -l app=${d} -o wide
+
+                                echo "--- Describe Pods ---"
+                                for pod in \$(kubectl -n default get pods -l app=${d} -o name); do
+                                    kubectl -n default describe \$pod
+                                done
+                            """
+                        } else {
+                            echo "✅ ${d} rolled out successfully."
+                        }
+                    }
                 }
             }
         }
