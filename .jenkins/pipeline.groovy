@@ -123,12 +123,8 @@ pipeline {
                     def createCluster = { nodes = 0 ->
                         def cluster = [:]
 
-                        // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
-                        // TODO env.KUBECONFIG, env.DNS_NAME
-
                         def registryIP = sh(script: "getent hosts ds4h-registry | awk '{print \$1}'", returnStdout: true).trim()
-                        // sh "k3d cluster create ${env.K3D_CLUSTER_NAME} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --registry-use ds4h-registry:5432 --kubeconfig-update-default=false --kubeconfig-switch-context=false"
-                        sh "k3d cluster create ${env.K3D_CLUSTER_NAME} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --kubeconfig-update-default=false --kubeconfig-switch-context=false"
+                        sh "k3d cluster create ${env.K3D_CLUSTER_NAME} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --registry-confi .jenkins/registry.yaml --kubeconfig-update-default=false --kubeconfig-switch-context=false"
                         sh "k3d kubeconfig get ${env.K3D_CLUSTER_NAME} > ${env.KUBECONFIG}"
                         sh "chmod 600 ${env.KUBECONFIG}"
                         cluster.net = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${env.K3D_CLUSTER_NAME}-server-0", returnStdout: true).trim()
@@ -274,7 +270,7 @@ pipeline {
                 cleanWs()
 
                 // Delete published images (if any)
-                env.IMAGES.split(",").each{ image ->
+                (env.IMAGES?.split(",") ?: []).each { image ->
                     // sh "docker push ${image}"
                 }
                 // Delete k3d cluster
