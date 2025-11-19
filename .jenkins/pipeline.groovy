@@ -192,18 +192,8 @@ pipeline {
 
                         if (status != 0) {
                             echo "❌ Rollout failed for ${d}. Fetching events and pod details..."
-                            sh """
-                                echo "--- Events ---"
-                                kubectl -n default get events --sort-by=.metadata.creationTimestamp | tail -n 20
-
-                                echo "--- Pods for ${d} ---"
-                                kubectl -n default get pods -l app=${d} -o wide
-
-                                echo "--- Describe Pods ---"
-                                for pod in \$(kubectl -n default get pods -l app=${d} -o name); do
-                                    kubectl -n default describe \$pod
-                                done
-                            """
+                            sh "kubectl -n default get events --sort-by=.metadata.creationTimestamp | tail -n 20"
+                            error("Deployment ${d} failed rollout verification.")
                         } else {
                             echo "✅ ${d} rolled out successfully."
                         }
