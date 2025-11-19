@@ -289,7 +289,7 @@ pipeline {
                     // sh "docker push ${image}"
                 }
                 // Delete k3d cluster
-                sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
+                // sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
 
                 // Detect if build was triggered manually or by SCM
                 def causes = currentBuild.getBuildCauses()
