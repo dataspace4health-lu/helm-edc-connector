@@ -5,11 +5,12 @@ pipeline {
         HELM_NAME = "${env.JOB_NAME.tokenize('/').dropRight(1).takeRight(1).join('-').toLowerCase()}"
         KUBECONFIG = ".jenkins/kubeconfig"
         K3D_CLUSTER_NAME = "${env.HELM_NAME}-${env.BUILD_ID}"
+        MICROSERVICE_ROOT_PATH = "DS4H/Microservices"
+        IMAGES = ""
     }
 
     parameters {
-        string(name: 'MICROSERVICE_ROOT_PATH', defaultValue: 'DS4H/Microservices', description: 'Base path of the microservice pipelines')
-        booleanParam(name: 'PUBLISH_HELM', defaultValue: false, description: 'Publish Helm after build')
+        choice(name: 'PUBLISH_HELM', choices: ['', 'ds4h-registry:5432', 'ds4hacrshared.azurecr.io'], description: 'Publish helm after build to this repo')
     }
 
     stages {
@@ -20,22 +21,22 @@ pipeline {
                 sh "helm package . --destination ./helm"
             }
         }
-        
+
         stage('Lint') {
             steps {
                 echo "Linting Helm chart"
                 sh """
                     mkdir -p build/reports/lint
-                    helm lint . | sed 's/^/<pre>/' | sed '\$a</pre>' > build/reports/lint/helm-lint-report.html
+                    helm lint . | sed 's/^/<pre>/' | sed '\$a</pre>' > build/reports/lint/lint.html
                 """
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'build/reports/lint/helm-lint-report.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'build/reports/lint/lint.html', allowEmptyArchive: true
                 }
             }
         }
-        
+
         // stage('Build Images') {
         //     steps {
         //         script {
@@ -65,7 +66,8 @@ pipeline {
         //                         echo "Triggering pipeline: ${jobName}"
         //                         parallelResults["${jobName}/${tag}"] = build(
         //                             job: "${jobName}/${tag}",
-        //                             parameters: [string(name: 'PUBLISH', value: "true")],
+        //                             // parameters: [string(name: 'PUBLISH', value: "true")],
+        //                             parameters: [choice(name: 'PUBLISH_IMAGE', value: "ds4h-registry:5432")],
         //                             wait: true,       // wait for completion
         //                             propagate: true   // fail this pipeline if triggered job fails
         //                         )
@@ -93,6 +95,12 @@ pipeline {
         //                     if (res.result == 'FAILURE') {
         //                         finalStatus = 'FAILURE'
         //                     }
+        //                     else {
+        //                         if (env.IMAGES) {
+        //                             env.IMAGES += ','
+        //                         }
+        //                         env.IMAGES += res.description.split('=')[1]
+        //                     }
         //                 }
 
         //                 // If any FAILURE → fail main pipeline
@@ -112,7 +120,7 @@ pipeline {
                     // creates a k3d cluster
                     // returns the cluster object
                     // nodes: number of worker nodes
-                    def createCluster = { nodes = 0 -> 
+                    def createCluster = { nodes = 0 ->
                         def cluster = [:]
 
                         // writeFile file: "${env.CLUSTER_FILE}", text: cluster.name
@@ -132,9 +140,9 @@ pipeline {
                         done
                         """
                         // def secrets = [
-                        //     [path: 'secret/jenkins/ds4h/azure-registry-ro-sp', secretValues: 
+                        //     [path: 'secret/jenkins/ds4h/azure-registry-ro-sp', secretValues:
                         //         [
-                        //             [envVar: 'APP_ID', vaultKey: 'app-id'], 
+                        //             [envVar: 'APP_ID', vaultKey: 'app-id'],
                         //             [envVar: 'SP_PASSWORD', vaultKey: 'password']
                         //         ]
                         //     ]
@@ -243,16 +251,21 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'built/reports/trivy/trivy-report.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'built/reports/trivy/trivy.html', allowEmptyArchive: true
                 }
             }
         }
 
-        // stage('Publish Helm') {
-        //     when {
-        //         expression { return params.PUBLISH_IMAGE == true }
-        //     }
-        // }
+        stage('Publish Helm') {
+            when {
+                expression { return params.PUBLISH_HELM != '' }
+            }
+            steps {
+                script {
+                    echo "Pushing helm"
+                }
+            }
+        }
     }
 
     post {
@@ -260,18 +273,18 @@ pipeline {
             script {
                 cleanWs()
 
+                // Delete published images (if any)
+                env.IMAGES.split(",").each( image -> {
+                    // sh "docker push ${image}"
+                })
                 // Delete k3d cluster
                 sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
-                
+
                 // Detect if build was triggered manually or by SCM
                 def causes = currentBuild.getBuildCauses()
                 def isManual = causes.any { it.toString().contains('UserIdCause') }
                 def isSCM = causes.any { it.toString().contains('SCMTrigger') || it.toString().contains('GitLabWebHookCause') }
                 def isUpstream = causes.any { it.toString().contains('UpstreamCause') }
-
-                // sh """
-                //     docker rmi -f ${IMAGE_NAME}
-                // """
 
                 if (isManual) {
                     echo "Build test triggered manually — sending email to Requester"
