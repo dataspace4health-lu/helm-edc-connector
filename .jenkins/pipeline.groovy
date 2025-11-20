@@ -229,10 +229,10 @@ pipeline {
                     script {
                         def scannerHome = tool "sonar"
                         sh """
-                            helm template . > helm/manifests.yaml
+                            helm template . > ./helm/manifests.yaml
                             ${scannerHome}/bin/sonar-scanner -X \
                                 -Dsonar.projectKey=${HELM_NAME} \
-                                -Dsonar.sources=helm/manifests.yaml \
+                                -Dsonar.sources=./helm/manifests.yaml \
                                 -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
                         """
 
@@ -253,14 +253,15 @@ pipeline {
         stage("Security Scan (Trivy)") {
             steps {
                 sh """
-                    helm template . | docker run --rm \
+                    helm template . > ./helm/manifests.yaml
+                    docker run --rm \
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         -v \$PWD/built/reports/trivy:/output \
                         -v \$PWD/.jenkins/trivy-html.tpl:/template.tpl \
-                        aquasec/trivy:latest config \
+                        -v \$PWD/helm/manifests.yaml:/manifests.yaml \
+                        aquasec/trivy:latest config manifests.yaml \
                         --exit-code 1 --timeout 15m --severity HIGH,CRITICAL \
-                        --format template --template "@/template.tpl" --output /output/trivy.html \
-                        -
+                        --format template --template "@/template.tpl" --output /output/trivy.html
                 """
             }
             post {
