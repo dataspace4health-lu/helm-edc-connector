@@ -188,7 +188,7 @@ pipeline {
 
                     for (d in deployments) {
                         def status = sh(
-                            script: "kubectl -n default rollout status deployment/${d} --timeout=120s",
+                            script: "kubectl -n default rollout status deployment/${d} --timeout=180s",
                             returnStatus: true
                         )
 
