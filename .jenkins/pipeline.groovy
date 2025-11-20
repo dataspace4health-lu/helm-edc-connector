@@ -234,6 +234,7 @@ pipeline {
                                 -Dsonar.projectKey=${HELM_NAME} \
                                 -Dsonar.sources=./helm \
                                 -Dsonar.inclusions=**/*.yaml,**/*.yml \
+                                -Dsonar.scm.exclusions.disabled=true \
                                 -Dsonar.language=yaml \
                                 -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
                         """
