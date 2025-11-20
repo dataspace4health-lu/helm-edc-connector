@@ -166,7 +166,9 @@ pipeline {
                     // echo "Deploying helm to Kubernetes ..."
                     sh """
                         helm upgrade --install edc-connector helm/*.tgz \
-                            --namespace default
+                            --namespace default \
+                            --reuse-values \
+                            --set dataplane.config.controlplaneReadinessUrl=http://edc-connector-controlplane:8181/edc/cp/base/api/check/health
                     """
                 }
             }
@@ -288,7 +290,7 @@ pipeline {
                     // sh "docker push ${image}"
                 }
                 // Delete k3d cluster
-                // sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
+                sh "k3d cluster delete ${env.K3D_CLUSTER_NAME} 2> /dev/null"
 
                 // Detect if build was triggered manually or by SCM
                 def causes = currentBuild.getBuildCauses()
