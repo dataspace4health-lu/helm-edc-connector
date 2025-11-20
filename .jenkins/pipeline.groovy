@@ -5,7 +5,7 @@ pipeline {
         HELM_NAME = "${env.JOB_NAME.tokenize('/').dropRight(1).takeRight(1).join('-').toLowerCase()}"
         KUBECONFIG = ".jenkins/kubeconfig"
         K3D_CLUSTER_NAME = "${env.HELM_NAME}-${env.BUILD_ID}"
-        MICROSERVICE_ROOT_PATH = "DS4H/Microservices"
+        // MICROSERVICE_ROOT_PATH = "DS4H/Microservices"
         IMAGES = ""
     }
 
@@ -17,8 +17,7 @@ pipeline {
         stage('Package Helm Chart') {
             steps {
                 echo "Packaging Helm chart..."
-                sh "helm dependency update"
-                sh "helm package . --destination ./helm"
+                sh "make clean && make build"
             }
         }
 
