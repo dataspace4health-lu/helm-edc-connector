@@ -168,6 +168,7 @@ pipeline {
                         helm upgrade --install edc-connector helm/*.tgz \
                             --namespace default \
                             --reuse-values \
+                            --set dataplane.config.dataplaneSelectorUrl=http://edc-connector-controlplane:8093/edc/cp/control/api/v1/dataplanes \
                             --set dataplane.config.controlplaneReadinessUrl=http://edc-connector-controlplane:8181/edc/cp/base/api/check/health
                     """
                 }
@@ -228,9 +229,10 @@ pipeline {
                     script {
                         def scannerHome = tool "sonar"
                         sh """
+                            helm template . > helm/manifests.yaml
                             ${scannerHome}/bin/sonar-scanner -X \
                                 -Dsonar.projectKey=${HELM_NAME} \
-                                -Dsonar.sources=helm \
+                                -Dsonar.sources=helm/manifests.yaml \
                                 -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
                         """
 
@@ -255,7 +257,7 @@ pipeline {
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         -v \$PWD/built/reports/trivy:/output \
                         -v \$PWD/.jenkins/trivy-html.tpl:/template.tpl \
-                        aquasec/trivy:latest \
+                        aquasec/trivy:latest config \
                         --exit-code 1 --timeout 15m --severity HIGH,CRITICAL \
                         --format template --template "@/template.tpl" --output /output/trivy.html \
                         -
