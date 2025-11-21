@@ -225,35 +225,37 @@ pipeline {
 
         stage("Code Quality Check (SonarQube)") {
             steps {
-                withSonarQubeEnv('sonar') {
-                    script {
-                        def scannerHome = tool "sonar"
-                        sh """
-                            helm template . > ./helm/manifests.yaml
-                            ${scannerHome}/bin/sonar-scanner -X \
-                                -Dsonar.projectKey=${HELM_NAME} \
-                                -Dsonar.sources=./helm \
-                                -Dsonar.inclusions=**/*.yaml,**/*.yml \
-                                -Dsonar.scm.exclusions.disabled=true \
-                                -Dsonar.language=yaml \
-                                -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
-                        """
+                script {
+                    withSonarQubeEnv('sonar') {
+                        script {
+                            def scannerHome = tool "sonar"
+                            sh """
+                                helm template . > ./helm/manifests.yaml
+                                ${scannerHome}/bin/sonar-scanner -X \
+                                    -Dsonar.projectKey=${HELM_NAME} \
+                                    -Dsonar.sources=./helm \
+                                    -Dsonar.inclusions=**/*.yaml,**/*.yml \
+                                    -Dsonar.scm.exclusions.disabled=true \
+                                    -Dsonar.language=yaml \
+                                    -Dsonar.branch.name=${env.GIT_BRANCH.replaceFirst("^origin/", "")}
+                            """
+                        }
+                    }
+
+                    // timeout(time: 10, unit: 'MINUTES') {
+                    //     waitForQualityGate abortPipeline: true
+                    // }
+
+                    // Wait for the Quality Gate result
+                    timeout(time: 10, unit: 'MINUTES') {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "❌ Quality Gate failed: ${qg.status}"
+                        } else {
+                            echo "✅ Quality Gate passed: ${qg.status}"
+                        }
                     }
                 }
-
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-
-                // // Wait for the Quality Gate result
-                // timeout(time: 10, unit: 'MINUTES') {
-                //     def qg = waitForQualityGate()
-                //     if (qg.status != 'OK') {
-                //         error "❌ Quality Gate failed: ${qg.status}"
-                //     } else {
-                //         echo "✅ Quality Gate passed: ${qg.status}"
-                //     }
-                // }
             }
         }
 
