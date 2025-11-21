@@ -241,15 +241,19 @@ pipeline {
                     }
                 }
 
-                // Wait for the Quality Gate result
                 timeout(time: 10, unit: 'MINUTES') {
-                    def qg = waitForQualityGate()
-                    if (qg.status != 'OK') {
-                        error "❌ Quality Gate failed: ${qg.status}"
-                    } else {
-                        echo "✅ Quality Gate passed: ${qg.status}"
-                    }
+                    waitForQualityGate abortPipeline: true
                 }
+
+                // // Wait for the Quality Gate result
+                // timeout(time: 10, unit: 'MINUTES') {
+                //     def qg = waitForQualityGate()
+                //     if (qg.status != 'OK') {
+                //         error "❌ Quality Gate failed: ${qg.status}"
+                //     } else {
+                //         echo "✅ Quality Gate passed: ${qg.status}"
+                //     }
+                // }
             }
         }
 
