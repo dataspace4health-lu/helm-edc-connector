@@ -242,10 +242,6 @@ pipeline {
                         }
                     }
 
-                    // timeout(time: 10, unit: 'MINUTES') {
-                    //     waitForQualityGate abortPipeline: true
-                    // }
-
                     // Wait for the Quality Gate result
                     timeout(time: 10, unit: 'MINUTES') {
                         def qg = waitForQualityGate()
