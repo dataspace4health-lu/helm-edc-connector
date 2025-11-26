@@ -88,6 +88,13 @@ config:
     host: ""
     port: 8185
     path: "/edc/ih/sts/api"
+  vault:
+    token: "root"
+  participant:
+    id: "edc-user1"
+    keysign:
+      algo: "EdDSA"
+      curve: "Ed25519"
 
 ingress:
   enabled: true
