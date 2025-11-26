@@ -33,13 +33,11 @@ The Identity Hub exposes several services:
 | Identity | 8182 | /api/identity | Identity management |
 | Credentials | 8183 | /api/credentials | Credential handling |
 | DID | 8184 | / | DID resolution |
+| STS | 8185 | / | STS service |
 
 ## Installation using make
 
 ```bash
 # From the component directory
-make uninstall
-make clean
-make build
-make install
+make uninstall && make clean && make build && make install
 ```

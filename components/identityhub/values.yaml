@@ -60,10 +60,12 @@ service:
     port: 8183
   did:
     port: 8184
+  sts:
+    port: 8185
 
 config:
   sqlSchemaAutocreate: true
-  identityHubIamId: "dfault"
+  identityHubIamId: "default"
   identityHubIamPublicKeyAlias: "default-key"
   http:
     host: ""
@@ -82,6 +84,10 @@ config:
     host: ""
     port: 8184
     path: "/edc/ih/did/api"
+  sts:
+    host: ""
+    port: 8185
+    path: "/edc/ih/sts/api"
 
 ingress:
   enabled: true
@@ -96,6 +102,9 @@ ingress:
           pathType: Prefix
         - path: /edc/ih/did/api
           port: 8184 ## did port
+          pathType: Prefix
+        - path: /edc/ih/sts/api
+          port: 8185 ## sts port
           pathType: Prefix
   tls:
     - secretName: dataspace4health.local

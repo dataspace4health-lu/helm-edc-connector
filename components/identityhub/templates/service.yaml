@@ -19,5 +19,8 @@ spec:
   - name: did
     port: {{ .Values.service.did.port }}
     targetPort: {{ .Values.service.did.port }}
+  - name: sts
+    port: {{ .Values.service.sts.port }}
+    targetPort: {{ .Values.service.sts.port }}
   selector:
     {{- include "app.selectorLabels" . | nindent 4 }}
