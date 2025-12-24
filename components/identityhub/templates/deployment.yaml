@@ -67,6 +67,12 @@ spec:
             value: "{{ .Values.config.sts.port }}"
           - name: WEB_HTTP_STS_PATH
             value: "{{ .Values.config.sts.path }}"
+          - name: EDC_PARTICIPANT_ID 
+            value: "{{ .Values.config.participant.id }}"
+          - name: EDC_PARTICIPANT_KEYSIGN_ALGO
+            value: "{{ .Values.config.participant.keysign.algo }}"
+          - name: EDC_PARTICIPANT_KEYSIGN_CURVE
+            value: "{{ .Values.config.participant.keysign.curve }}"
           - name: EDC_VAULT_HASHICORP_URL
             value: "{{ .Values.config.vault.url }}"
           - name: EDC_VAULT_HASHICORP_TOKEN
