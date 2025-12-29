@@ -87,6 +87,14 @@ config:
     host: ""
     port: 8194
     path: "/edc/cp/catalog/api"
+  vault:
+    createSecret: true #-- whether to create the vault token secret (set to false if another component creates it)
+    token: "root" #-- vault token (only used when createSecret is true, use external secret for production)
+    tokenSecretName: "edc-controlplane-vault" #-- secret name where vault token is stored, if its not provided, assume that vault is not to be used.
+    tokenSecretKey: "token"
+    url: "http://controlplane-vault:8200" #-- Vault service URL (typically {release-name}-vault) 
+  sts:
+    oauthTokenUrl: "http://edc-identityhub:8185/edc/ih/sts/api"
     
 #TODO: to add ingress for all the exposed apis
 ingress:
@@ -137,3 +145,6 @@ postgresql:
     persistence:
       enabled: true
       size: 5Gi
+
+vault:
+  enabled: false

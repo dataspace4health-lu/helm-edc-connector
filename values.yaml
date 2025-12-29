@@ -4,6 +4,12 @@ controlplane:
     nameOverride: controlplane-postgresql
   config:
     participantId: "did:web:dataspace4health.local"
+    vault:
+      createSecret: false #-- whether to create the vault token secret (set to false if another component creates it)
+      token: "root" #-- vault token (only used when createSecret is true)
+      tokenSecretName: "edc-vault" #-- Use the same secret as identityhub
+      tokenSecretKey: "token"
+      url: "http://edc-vault:8200" #-- Vault service URL (release-name + '-vault') 
 dataplane:
   nameOverride: dataplane
   config:
@@ -23,8 +29,14 @@ identityhub:
   postgresql:
     nameOverride: identityhub-postgresql
   config:
-    identityHubIamId: "dfault"
+    identityHubIamId: "default"
     identityHubIamPublicKeyAlias: "default-key"
+    vault:
+      createSecret: true
+      token: "root" #-- vault token (only used when createSecret is true)
+      tokenSecretName: "edc-vault"
+      tokenSecretKey: "token"
+      url: "http://edc-vault:8200" #-- Vault service URL (release-name + '-vault') 
 dashboard:
   nameOverride: dashboard
   controlplane:

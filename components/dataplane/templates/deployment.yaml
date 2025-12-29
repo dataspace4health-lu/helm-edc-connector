@@ -40,6 +40,8 @@ spec:
         - name: wait-for-controlplane
           image: appropriate/curl:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
           command:
             - "/bin/sh"
             - "-c"
@@ -55,7 +57,8 @@ spec:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-
+        securityContext:
+          readOnlyRootFilesystem: true
         env:
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"

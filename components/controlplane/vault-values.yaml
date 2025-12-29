@@ -1,0 +1,18 @@
+vault:
+  server:
+    dev:
+      enabled: true
+      devRootToken: "root"   # change for anything beyond local/dev
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    dataStorage:
+      enabled: true
+      size: 1Gi
+
+  injector:
+    enabled: false

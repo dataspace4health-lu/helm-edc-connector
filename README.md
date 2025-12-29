@@ -6,8 +6,18 @@ This Helm chart defines a complete Eclipse Dataspace Connector (EDC) deployment 
 - **Data Plane**: Handles actual data transfer operations
 - **Identity Hub**: Provides identity management and verifiable credential services
 - **Dashboard**: Provides Dashboard UI for EDC instance of a participant
+- **Vault**: HashiCorp Vault for secrets management (included as dependency)
 
 The chart is designed to deploy all components as a unified connector solution for participating in data spaces.
+
+## Key Feature: Vault as Chart Dependency
+
+Vault is included as a **conditional dependency**, allowing you to:
+- ✅ Install everything together with one command
+- ✅ Skip Vault if it's already deployed elsewhere
+- ✅ Preserve Vault when upgrading/removing EDC components
+- ✅ Enable/disable any component independently
+
 
 ## Architecture
 
@@ -102,10 +112,24 @@ Registers itself to the Control Plane for data transfer purposes. The Data Plane
 
 Each component can be configured separately through their respective values files:
 - `values.yaml`: Root chart values
+- `vault-values.yaml`: Vault-specific configuration (server mode, resources, storage, etc.)
 - `components/controlplane/values.yaml`: Control Plane configuration
 - `components/dataplane/values.yaml`: Data Plane configuration
 - `components/identityhub/values.yaml`: Identity Hub configuration
 - `components/dashboard/values.yaml`: Dashboard configuration, set the connector values to change the instance of a participant
+
+### Vault Configuration
+
+The Vault dependency is configured through two files:
+1. **values.yaml**: Controls whether Vault is enabled (`vault.enabled: true/false`)
+2. **vault-values.yaml**: Contains detailed Vault configuration including:
+   - Server mode (dev/standalone/HA)
+   - Resource limits
+   - Storage configuration
+   - Service settings
+   - UI configuration
+
+The `vault-values.yaml` file is automatically applied during installation via the Makefile. To customize Vault settings, edit this file before running `make install`.
 
 ## Database Configuration
 

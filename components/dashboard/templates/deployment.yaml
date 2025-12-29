@@ -39,6 +39,8 @@ spec:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        securityContext:
+          readOnlyRootFilesystem: true
 
         env:
         {{- if .Values.secretEnv }}
@@ -72,8 +74,20 @@ spec:
         volumeMounts:
           - name: app-config
             mountPath: /app/config
+          - name: tmp
+            mountPath: /tmp
+          - name: nginx-cache
+            mountPath: /var/cache/nginx
+          - name: nginx-run
+            mountPath: /var/run
       volumes:
         - name: app-config
           configMap:
             name: {{ include "app.chartname" . }}-appconfig
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
 

@@ -2,7 +2,7 @@ timestamp = $(shell date "+%Y.%m.%d-%H.%M.%S")
 
 #function to update helm dependencies and package the chart and save the tgz in helm directory
 define build =
-helm dependency update
+helm dependency update > /dev/null 2>&1
 helm package . -d helm
 endef
 
@@ -31,8 +31,11 @@ endif
 	@echo "Installing on namespace $(NAMESPACE)"
 #Ensure the namespace exists (ignore error if it already exists)
 	kubectl create namespace $(NAMESPACE) 2> /dev/null || true
-#Install or upgrade Helm release into the namespace
-	helm install $(CURRENT_DIR) helm/*.tgz --namespace $(NAMESPACE)
+#Install or upgrade Helm release into the namespace with Vault values
+	helm install $(CURRENT_DIR) helm/*.tgz \
+		--namespace $(NAMESPACE) \
+		-f vault-values.yaml \
+		--set vault.enabled=true
 
 uninstall:
 ifeq ($(strip $(NAMESPACE)),)

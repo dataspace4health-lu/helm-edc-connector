@@ -38,7 +38,8 @@ spec:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
-
+        securityContext:
+            readOnlyRootFilesystem: true
         env:
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"
@@ -64,14 +65,17 @@ spec:
             value: "{{ .Values.config.catalog.port }}"
           - name: WEB_HTTP_CATALOG_PATH
             value: "{{ .Values.config.catalog.path }}"
+          # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
           - name: EDC_VAULT_HASHICORP_URL
             value: "{{ .Values.config.vault.url }}"
           # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
+        {{- if .Values.config.vault.tokenSecretName }}
           - name: EDC_VAULT_HASHICORP_TOKEN
             valueFrom:
               secretKeyRef:
-                name: {{ include "app.chartname" . }}-vault
-                key: token
+                name: {{ .Values.config.vault.tokenSecretName }}
+                key: {{ .Values.config.vault.tokenSecretKey }}
+        {{- end }}
           - name : EDC_IAM_STS_OAUTH_TOKEN_URL
             value: "{{ .Values.config.sts.oauthTokenUrl }}"
           - name : EDC_IAM_STS_OAUTH_CLIENT_ID

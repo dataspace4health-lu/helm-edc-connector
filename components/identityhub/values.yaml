@@ -89,7 +89,11 @@ config:
     port: 8185
     path: "/edc/ih/sts/api"
   vault:
-    token: "root"
+    createSecret: true #-- whether to create the vault token secret (set to false if another component creates it)
+    token: "root" #-- vault token (only used when createSecret is true, use external secret for production)
+    tokenSecretName: "edc-identityhub-vault" #-- secret name where vault token is stored, if its not provided, assume that vault is not to be used.
+    tokenSecretKey: "token"
+    url: "http://identityhub-vault:8200" #-- Vault service URL (typically {release-name}-vault) 
   participant:
     id: "edc-user1"
     keysign:
@@ -142,3 +146,6 @@ postgresql:
       enabled: true
       size: 5Gi
       path: "/data/identityhub-postgres"
+
+vault:
+  enabled: false
