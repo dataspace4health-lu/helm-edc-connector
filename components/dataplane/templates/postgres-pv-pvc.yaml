@@ -2,8 +2,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: {{ include "app.chartname" . }}-postgres-volume
-  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Namespace }}-{{ include "app.chartname" . }}-postgres-volume
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:

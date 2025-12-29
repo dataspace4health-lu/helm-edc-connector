@@ -95,6 +95,12 @@ config:
     host: ""
     port: 12001
     path: "/edc/dp/public/api"
+  vault:
+    createSecret: true #-- whether to create the vault token secret (set to false if another component creates it)
+    token: "root" #-- vault token (only used when createSecret is true, use external secret for production)
+    tokenSecretName: "edc-controlplane-vault" #-- secret name where vault token is stored, if its not provided, assume that vault is not to be used.
+    tokenSecretKey: "token"
+    url: "http://dataplane-vault:8200" #-- Vault service URL (typically {release-name}-vault)
 
 #TODO: check if ingress is needed for dataplane or it is only called by control plane internally.
 ingress:
@@ -122,4 +128,12 @@ controlplane:
   enabled: true
   nameOverride: controlplane
   postgresql:
+    enabled: true
     nameOverride: controlplane-postgresql
+    primary:
+      persistence:
+        enabled: true
+        size: 5Gi
+        path: "/mnt/data/controlplane-postgres"
+  vault:
+    enabled: false  

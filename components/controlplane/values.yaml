@@ -145,6 +145,9 @@ postgresql:
     persistence:
       enabled: true
       size: 5Gi
+      path: "/mnt/data/controlplane-postgres"
 
+storage:
+  enabled: true
 vault:
   enabled: false

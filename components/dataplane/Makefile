@@ -1,7 +1,17 @@
 timestamp = $(shell date "+%Y.%m.%d-%H.%M.%S")
 
 #function to update helm dependencies and package the chart and save the tgz in helm directory
+# NOTE: Helm dependency management for multi-chart deployments
+# When working with Helm charts that contain subcharts (like dataplane depending on controlplane),
+# Helm does NOT automatically traverse and build dependencies in subcharts.
+# 
+# IMPORTANT: You must explicitly build and update dependencies in the controlplane chart
+# BEFORE packaging it and vendoring it as a dependency into the dataplane chart.
+# 
+# This ensures all transitive dependencies are properly resolved and included in the
+# final packaged chart, preventing build failures and missing dependencies at deployment time.
 define build =
+cd ../controlplane && helm dependency update && cd ../dataplane
 helm dependency update
 helm package . -d helm
 endef
@@ -48,4 +58,5 @@ endif
 	kubectl delete namespace $(NAMESPACE) --wait=true --timeout=60s 2> /dev/null || true
 
 clean: $(SUBDIRS)
+	cd ../controlplane && rm -rf charts helm && cd ../dataplane
 	rm -rf charts helm

@@ -19,9 +19,16 @@ dataplane:
     controlplaneReadinessUrl: "http://edc-controlplane:8181/edc/cp/base/api/check/health"
     stsPrivateKeyAlias: "key-1"
     stsPublicKeyAlias: "key-1"
+    vault:
+      createSecret: false #-- whether to create the vault token secret (set to false if another component creates it)
+      token: "root" #-- vault token (only used when createSecret is true)
+      tokenSecretName: "edc-vault" #-- Use the same secret as identityhub
+      tokenSecretKey: "token"
+      url: "http://edc-vault:8200" #-- Vault service URL (release-name + '-vault') 
   controlplane:
     enabled: false
     postgresql:
+      enabled: false  # Disable PostgreSQL when controlplane is disabled
       auth:
         password: "p@ssw0rd"
 identityhub:
