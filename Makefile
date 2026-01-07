@@ -35,7 +35,8 @@ endif
 	helm install $(CURRENT_DIR) helm/*.tgz \
 		--namespace $(NAMESPACE) \
 		-f vault-values.yaml \
-		--set vault.enabled=true
+		--set dataplane.config.dataplaneSelectorUrl=http://$(CURRENT_DIR)-controlplane:8093/edc/cp/control/api/v1/dataplanes \
+		--set dataplane.config.controlplaneReadinessUrl=http://$(CURRENT_DIR)-controlplane:8181/edc/cp/base/api/check/health
 
 uninstall:
 ifeq ($(strip $(NAMESPACE)),)
