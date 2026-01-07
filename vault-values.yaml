@@ -18,6 +18,3 @@ vault:
 
   injector:
     enabled: false
-    securityContext:
-      container:
-        readOnlyRootFilesystem: true
