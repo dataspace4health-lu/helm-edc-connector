@@ -56,3 +56,5 @@ dashboard:
     federatedCatalogEnabled: "false"
     federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
     did: "did:web:dataspace4health.local"
+vault:
+  enabled: false
