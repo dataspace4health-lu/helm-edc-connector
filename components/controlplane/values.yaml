@@ -67,6 +67,8 @@ service:
 config:
   participantId: "did:web:dataspace4health.local" # DID:WEB identifier of the participant, will be used as runtime participantId
   sqlSchemaAutocreate: true
+  policy:
+    catalogScope: "org.eclipse.edc.vc.type:MembershipCredential:read" # Scope for catalog policy validation
   http:
     host: ""
     port: 8181 #web http port
@@ -94,7 +96,6 @@ config:
     tokenSecretKey: "token"
     url: "http://controlplane-vault:8200" #-- Vault service URL (typically {release-name}-vault) 
   sts:
-    oauthTokenUrl: "http://edc-identityhub:8185/edc/ih/sts/api"
     
 #TODO: to add ingress for all the exposed apis
 ingress:
