@@ -96,7 +96,8 @@ config:
     tokenSecretKey: "token"
     url: "http://controlplane-vault:8200" #-- Vault service URL (typically {release-name}-vault) 
   sts:
-    
+    oauthTokenUrl: "http://edc-identityhub:8185/edc/ih/sts/api"
+
 #TODO: to add ingress for all the exposed apis
 ingress:
   enabled: true
