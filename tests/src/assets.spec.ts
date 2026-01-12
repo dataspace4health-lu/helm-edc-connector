@@ -9,8 +9,7 @@ test.describe('Data Assets Registration - API Tests', () => {
   test('1. GET assets - should retrieve assets list', async ({ request }) => {
     console.log('Testing GET /v3/assets');
 
-    const response = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`, {
-    });
+    const response = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`);
 
     console.log(`Response status: ${response.status()}`);
 
@@ -298,18 +297,7 @@ test.describe('Data Assets Registration - API Tests', () => {
     // Step 2: Query the assets list to verify it exists
     console.log('Step 2: Querying assets list to verify creation');
 
-    const queryResponse = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: {
-        '@context': {},
-        '@type': 'QuerySpec',
-        offset: 0,
-        limit: 50,
-      },
-      ignoreHTTPSErrors: true,
-    });
+    const queryResponse = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`);
 
     expect(queryResponse.status()).toBe(200);
     const assets = await queryResponse.json();
@@ -322,5 +310,38 @@ test.describe('Data Assets Registration - API Tests', () => {
 
     console.log('✓ Asset verified in the list successfully');
     console.log('Asset details:', JSON.stringify(foundAsset, null, 2));
+  });
+  test('4. DELETE all assets - should remove all existing assets', async ({ request }) => {
+    console.log('Step 1: Retrieving all assets');
+
+    // Get all assets first
+    const queryResponse = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`);
+
+    expect(queryResponse.status()).toBe(200);
+    const assets = await queryResponse.json();
+    console.log(`Found ${assets.length} assets to delete`);
+
+    // Delete each asset
+    for (const asset of assets) {
+      const assetId = asset['@id'];
+      console.log(`Deleting asset: ${assetId}`);
+
+      const deleteResponse = await request.delete(
+        `${MANAGEMENT_API_URL}/v3/assets/${encodeURIComponent(assetId)}`);
+
+      expect([200, 204, 404]).toContain(deleteResponse.status());
+      console.log(`✓ Asset deleted: ${assetId}`);
+    }
+
+    // Verify all assets are deleted
+    console.log('Step 2: Verifying all assets are deleted');
+
+    const verifyResponse = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`);
+
+    expect(verifyResponse.status()).toBe(200);
+    const remainingAssets = await verifyResponse.json();
+    expect(remainingAssets.length).toBe(0);
+
+    console.log('✓ All assets deleted successfully');
   });
 });
