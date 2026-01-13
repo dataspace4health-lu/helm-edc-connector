@@ -207,7 +207,7 @@ pipeline {
                 dir('tests') {
                     sh """
                         npm ci
-                        npx playwright install --with-deps
+                        npx playwright install
                         npx playwright test --reporter=html
                     """
                 }
