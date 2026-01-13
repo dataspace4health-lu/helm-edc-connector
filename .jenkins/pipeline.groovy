@@ -204,13 +204,13 @@ pipeline {
             steps {
                 echo "Running Playwright end-to-end tests..."
 
-                // dir('tests') { // assuming your Playwright tests are in ./tests
-                //     sh """
-                //         npm ci
-                //         npx playwright install --with-deps
-                //         npx playwright test --reporter=html
-                //     """
-                // }
+                dir('tests') {
+                    sh """
+                        npm ci
+                        npx playwright install --with-deps
+                        npx playwright test --reporter=html
+                    """
+                }
             }
             post {
                 always {
