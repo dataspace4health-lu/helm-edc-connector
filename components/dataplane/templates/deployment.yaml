@@ -59,6 +59,9 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         securityContext:
           readOnlyRootFilesystem: true
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
         env:
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"
@@ -148,5 +151,8 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
         {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
 
 

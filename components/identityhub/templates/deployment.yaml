@@ -39,6 +39,9 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         securityContext:
           readOnlyRootFilesystem: true
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
         env:
           - name: EDC_SQL_SCHEMA_AUTOCREATE
             value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
@@ -137,3 +140,6 @@ spec:
             port: {{ .Values.readinessProbe.port }}
           initialDelaySeconds: 5
           periodSeconds: 5
+      volumes:
+        - name: tmp
+          emptyDir: {}
