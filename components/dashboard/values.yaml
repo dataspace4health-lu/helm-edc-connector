@@ -78,19 +78,6 @@ config:
 
 ingress:
   enabled: true
-  rewriteTargets: 
-  - regex: /edc/dashboard(/|$)(.*)
-    replacement: /$2
-  rewriteBody: 
-  - regex: <meta charset="utf-8">
-    replacement: <base href="/edc/dashboard/"><meta charset="utf-8">
-    logLevel: -2
-    monitoring:
-      methods:
-      - GET
-      types:
-      - "*/*"
-      - text/html
   hosts:
     - host: dataspace4health.local
       paths:
