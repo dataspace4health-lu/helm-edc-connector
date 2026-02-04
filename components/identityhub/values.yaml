@@ -67,6 +67,10 @@ config:
   sqlSchemaAutocreate: true
   identityHubIamId: "default"
   identityHubIamPublicKeyAlias: "default-key"
+  protocol:
+    host: ""
+    port: 8092 #dsp port 
+    path: "/edc/cp/dsp/api"
   http:
     host: ""
     port: 8181
@@ -83,7 +87,7 @@ config:
   did:
     host: ""
     port: 8184
-    path: "/edc/ih/did/api"
+    path: "/"
   sts:
     host: ""
     port: 8185
@@ -111,7 +115,7 @@ ingress:
         - path: /edc/ih/credentials/api
           port: 8183 ## credentials api port
           pathType: Prefix
-        - path: /edc/ih/did/api
+        - path: /.well-known
           port: 8184 ## did port
           pathType: Prefix
         - path: /edc/ih/sts/api

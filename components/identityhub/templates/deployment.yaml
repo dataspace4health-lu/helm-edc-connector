@@ -33,6 +33,24 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.image.pullSecrets }}
       {{- end }}
+      
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+          command:
+            - "/bin/sh"
+            - "-c"
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until nc -z {{ include "app.chartname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local 5432; do
+                echo "PostgreSQL is not ready yet. Retrying in 2 seconds..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+
       containers:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
@@ -71,6 +89,10 @@ spec:
             value: "{{ .Values.config.sts.port }}"
           - name: WEB_HTTP_STS_PATH
             value: "{{ .Values.config.sts.path }}"
+          - name: WEB_HTTP_PROTOCOL_PATH
+            value: "{{ .Values.config.protocol.path }}"
+          - name: WEB_HTTP_PROTOCOL_PORT
+            value: "{{ .Values.config.protocol.port }}"
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"
             value: "{{ .Values.config.participant.id }}"
@@ -80,6 +102,8 @@ spec:
             value: "{{ .Values.config.participant.keysign.curve }}"
           - name: EDC_VAULT_HASHICORP_URL
             value: "{{ .Values.config.vault.url }}"
+          - name: EDC_HTTP_DISABLE_TLS
+            value: "{{ .Values.config.disableTLS | default "false" }}"
           # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
         {{- if .Values.config.vault.tokenSecretName }}
           - name: EDC_VAULT_HASHICORP_TOKEN

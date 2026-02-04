@@ -93,8 +93,23 @@ config:
     tokenSecretName: "edc-controlplane-vault" #-- secret name where vault token is stored, if its not provided, assume that vault is not to be used.
     tokenSecretKey: "token"
     url: "http://controlplane-vault:8200" #-- Vault service URL (typically {release-name}-vault) 
+    allowFallback: true
   sts:
     oauthTokenUrl: "http://edc-identityhub:8185/edc/ih/sts/api"
+  iam:
+  # format to add trusted issuers and their supported types
+    trustedissuer:
+    #   p1:
+    #     id: "did:web:dataspace4health.local"
+    #     supportedtypes:
+    #     - "MembershipCredential"
+  dsp:
+  #http://edc-controlplane.edc-user1.svc.cluster.local:8092/edc/cp/dsp/api
+    callbackAddress: ""
+  scope:
+    catalog: ""
+    contract: ""
+    transfer: ""
     
 #TODO: to add ingress for all the exposed apis
 ingress:

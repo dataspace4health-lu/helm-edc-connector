@@ -34,6 +34,24 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.image.pullSecrets }}
       {{- end }}
+      
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+          command:
+            - "/bin/sh"
+            - "-c"
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until nc -z {{ include "app.chartname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local 5432; do
+                echo "PostgreSQL is not ready yet. Retrying in 2 seconds..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+
       containers:
       - name: {{ template "app.chartname" . }}
         image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
@@ -68,9 +86,22 @@ spec:
             value: "{{ .Values.config.catalog.port }}"
           - name: WEB_HTTP_CATALOG_PATH
             value: "{{ .Values.config.catalog.path }}"
-          # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
           - name: EDC_VAULT_HASHICORP_URL
             value: "{{ .Values.config.vault.url }}"
+          - name: EDC_HTTP_DISABLE_TLS
+            value: "{{ .Values.config.disableTLS | default "false" }}"
+          - name: EDC_VAULT_HASHICORP_ALLOW-FALLBACK
+            value: "{{ .Values.config.vault.allowFallback | default "true" }}"
+        {{ range $alias, $config := .Values.config.iam.trustedissuer }}
+          - name: {{ printf "EDC_IAM_TRUSTEDISSUER_%s_ID" (upper $alias) }}
+            value: "{{ $config.id }}"
+          - name: {{ printf "EDC_IAM_TRUSTEDISSUER_%s_SUPPORTEDTYPES" (upper $alias) }}
+            value: {{ $config.supportedtypes | toJson | quote }}
+        {{ end }}
+        {{- if .Values.config.dsp.callbackAddress }}
+          - name: EDC_DSP_CALLBACK_ADDRESS
+            value: "{{ .Values.config.dsp.callbackAddress }}"
+        {{- end }}
           # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
         {{- if .Values.config.vault.tokenSecretName }}
           - name: EDC_VAULT_HASHICORP_TOKEN
@@ -94,6 +125,13 @@ spec:
             value: "{{ .Values.config.issuerId }}"
           - name: LOG_LEVEL
             value: "{{ .Values.log.level | default "INFO" }}"
+            ## scope settings for policy evaluation
+          - name: EDC_POLICY_CATALOG_SCOPE
+            value: "{{ .Values.config.scope.catalog }}"
+          - name: EDC_POLICY_CONTRACT_SCOPE
+            value: "{{ .Values.config.scope.contract }}"
+          - name: EDC_POLICY_TRANSFER_SCOPE
+            value: "{{ .Values.config.scope.transfer }}"
 
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}

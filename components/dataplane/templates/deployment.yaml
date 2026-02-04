@@ -65,6 +65,8 @@ spec:
         env:
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"
+          - name: EDC_HOSTNAME
+            value: "{{ .Values.config.hostname }}"
           - name: EDC_SQL_SCHEMA_AUTOCREATE
             value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
           - name: EDC_DATA_PLANE_SELF_REGISTRATION
