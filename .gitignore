@@ -1,6 +1,8 @@
 **/charts
 **/helm
 **/*.lock
+**/tests/results
+**/package-lock.json
 **/tests/test-results
 **/node_modules
 **/playwright-report

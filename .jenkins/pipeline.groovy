@@ -202,19 +202,55 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo "Running Playwright end-to-end tests..."
-
-                // dir('tests') { // assuming your Playwright tests are in ./tests
-                //     sh """
-                //         npm ci
-                //         npx playwright install --with-deps
-                //         npx playwright test --reporter=html
-                //     """
-                // }
+                script {
+                    echo "Running Playwright end-to-end tests in Docker container..."
+                    
+                    def timestamp = sh(script: 'date "+%Y.%m.%d-%H.%M.%S"', returnStdout: true).trim()
+                    def containerName = "playwright-${env.BUILD_ID}"
+                    def clusterNet = sh(script: "docker inspect -f '{{range \$key, \$value := .NetworkSettings.Networks}}{{println \$key}}{{end}}' k3d-${env.K3D_CLUSTER_NAME}-server-0", returnStdout: true).trim()
+                    def ingressIP = sh(script: "kubectl get ingress edc-controlplane -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo '172.18.0.2'", returnStdout: true).trim()
+                    
+                    echo "Using container name: ${containerName}"
+                    echo "Using cluster network: ${clusterNet}"
+                    echo "Using ingress IP: ${ingressIP}"
+                    try {
+                        sh """
+                            # Create results directory
+                            mkdir -p tests/results/${timestamp}
+                            
+                            # Run Playwright container on k3d cluster network
+                            docker run -d -t --name ${containerName} --network ${clusterNet} --ipc=host mcr.microsoft.com/playwright:v1.46.1
+                            
+                            # Configure DNS for dataspace4health.local
+                            docker exec ${containerName} bash -c "echo '${ingressIP} dataspace4health.local' >> /etc/hosts"
+                            
+                            # Setup test directory
+                            docker exec ${containerName} bash -c "mkdir -p app/tests"
+                            
+                            # Copy tests to container
+                            docker cp tests ${containerName}:/app
+                            
+                            # Run tests
+                            docker exec ${containerName} bash -c "cd /app/tests && export CI=1 && npm i --silent && npx -y playwright test --output ./results" || true
+                            
+                            # Copy results back
+                            docker cp ${containerName}:/app/tests/results/ tests/results/${timestamp}/traces || true
+                            docker cp ${containerName}:/app/tests/playwright-report/ tests/results/${timestamp}/report || true
+                            
+                            # Rename index.html to test.html
+                            if [ -f tests/results/${timestamp}/report/index.html ]; then
+                                mv tests/results/${timestamp}/report/index.html tests/results/${timestamp}/report/test.html
+                            fi
+                        """
+                    } finally {
+                        // Always cleanup container
+                        sh "docker rm -f ${containerName} || true"
+                    }
+                }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'build/reports/playwright/test-report.html', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'tests/results/**/report/test.html', allowEmptyArchive: true
                 }
             }
         }
