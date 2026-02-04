@@ -67,6 +67,8 @@ service:
 config:
   participantId: "did:web:dataspace4health.local" # DID:WEB identifier of the participant, will be used as runtime participantId
   sqlSchemaAutocreate: true
+  policy:
+    catalogScope: "org.eclipse.edc.vc.type:MembershipCredential:read" # Scope for catalog policy validation
   http:
     host: ""
     port: 8181 #web http port
@@ -96,6 +98,7 @@ config:
     allowFallback: true
   sts:
     oauthTokenUrl: "http://edc-identityhub:8185/edc/ih/sts/api"
+
   iam:
   # format to add trusted issuers and their supported types
     trustedissuer:

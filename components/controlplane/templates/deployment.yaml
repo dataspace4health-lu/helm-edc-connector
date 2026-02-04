@@ -66,6 +66,8 @@ spec:
             value: "{{ .Values.config.participantId }}"
           - name: EDC_SQL_SCHEMA_AUTOCREATE
             value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
+          - name: EDC_POLICY_CATALOG_SCOPE
+            value: "{{ .Values.config.policy.catalogScope }}"
           - name: WEB_HTTP_PORT
             value: "{{ .Values.config.http.port }}"
           - name: WEB_HTTP_PATH

@@ -213,26 +213,32 @@ pipeline {
                     echo "Using container name: ${containerName}"
                     echo "Using cluster network: ${clusterNet}"
                     echo "Using ingress IP: ${ingressIP}"
+                    
+                    def testExitCode = 0
                     try {
                         sh """
                             # Create results directory
                             mkdir -p tests/results/${timestamp}
                             
-                            # Run Playwright container on k3d cluster network
-                            docker run -d -t --name ${containerName} --network ${clusterNet} --ipc=host mcr.microsoft.com/playwright:v1.46.1
-                            
-                            # Configure DNS for dataspace4health.local
-                            docker exec ${containerName} bash -c "echo '${ingressIP} dataspace4health.local' >> /etc/hosts"
+                            # Run Playwright container on k3d cluster network with host mapping
+                            docker run -d -t --name ${containerName} --network ${clusterNet} --ipc=host --add-host=dataspace4health.local:${ingressIP} mcr.microsoft.com/playwright:v1.57.0-jammy 
                             
                             # Setup test directory
                             docker exec ${containerName} bash -c "mkdir -p app/tests"
                             
                             # Copy tests to container
                             docker cp tests ${containerName}:/app
-                            
-                            # Run tests
-                            docker exec ${containerName} bash -c "cd /app/tests && export CI=1 && npm i --silent && npx -y playwright test --output ./results" || true
-                            
+                        """
+                        
+                        // Run tests and capture exit code
+                        testExitCode = sh(
+                            script: """
+                                docker exec ${containerName} bash -c "cd /app/tests && export CI=1 && npm i --silent && npx -y playwright test --output ./results"
+                            """,
+                            returnStatus: true
+                        )
+                        
+                        sh """
                             # Copy results back
                             docker cp ${containerName}:/app/tests/results/ tests/results/${timestamp}/traces || true
                             docker cp ${containerName}:/app/tests/playwright-report/ tests/results/${timestamp}/report || true
@@ -245,6 +251,13 @@ pipeline {
                     } finally {
                         // Always cleanup container
                         sh "docker rm -f ${containerName} || true"
+                    }
+                    
+                    // Fail the stage if tests failed
+                    if (testExitCode != 0) {
+                        error("❌ Playwright tests failed with exit code ${testExitCode}")
+                    } else {
+                        echo "✅ All tests passed successfully"
                     }
                 }
             }
