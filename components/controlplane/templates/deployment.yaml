@@ -62,12 +62,14 @@ spec:
           - name: tmp
             mountPath: /tmp
         env:
+            ## EDC specific environment variables
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"
           - name: EDC_SQL_SCHEMA_AUTOCREATE
             value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
-          - name: EDC_POLICY_CATALOG_SCOPE
-            value: "{{ .Values.config.policy.catalogScope }}"
+          - name: EDC_DSP_CALLBACK_ADDRESS
+            value: "{{ .Values.config.dsp.callbackAddress }}"
+            ## all the http endpoints for control plane
           - name: WEB_HTTP_PORT
             value: "{{ .Values.config.http.port }}"
           - name: WEB_HTTP_PATH
@@ -88,10 +90,14 @@ spec:
             value: "{{ .Values.config.catalog.port }}"
           - name: WEB_HTTP_CATALOG_PATH
             value: "{{ .Values.config.catalog.path }}"
-          - name: EDC_VAULT_HASHICORP_URL
-            value: "{{ .Values.config.vault.url }}"
+            ## other configurations
           - name: EDC_HTTP_DISABLE_TLS
             value: "{{ .Values.config.disableTLS | default "false" }}"
+          - name: LOG_LEVEL
+            value: "{{ .Values.log.level | default "INFO" }}"
+            ## vault configuration
+          - name: EDC_VAULT_HASHICORP_URL
+            value: "{{ .Values.config.vault.url }}"
           - name: EDC_VAULT_HASHICORP_ALLOW-FALLBACK
             value: "{{ .Values.config.vault.allowFallback | default "true" }}"
         {{ range $alias, $config := .Values.config.iam.trustedissuer }}
@@ -100,10 +106,6 @@ spec:
           - name: {{ printf "EDC_IAM_TRUSTEDISSUER_%s_SUPPORTEDTYPES" (upper $alias) }}
             value: {{ $config.supportedtypes | toJson | quote }}
         {{ end }}
-        {{- if .Values.config.dsp.callbackAddress }}
-          - name: EDC_DSP_CALLBACK_ADDRESS
-            value: "{{ .Values.config.dsp.callbackAddress }}"
-        {{- end }}
           # TODO: Shoudl be auto renew, how to handle the auto renew in secret?
         {{- if .Values.config.vault.tokenSecretName }}
           - name: EDC_VAULT_HASHICORP_TOKEN
@@ -112,21 +114,20 @@ spec:
                 name: {{ .Values.config.vault.tokenSecretName }}
                 key: {{ .Values.config.vault.tokenSecretKey }}
         {{- end }}
+            ## TODO: Move STS keys to vault
+            ## STS configuration
           - name : EDC_IAM_STS_OAUTH_TOKEN_URL
             value: "{{ .Values.config.sts.oauthTokenUrl }}"
           - name : EDC_IAM_STS_OAUTH_CLIENT_ID
             value: "{{ .Values.config.sts.oauthClientId }}"
           - name : EDC_IAM_STS_OAUTH_CLIENT_SECRET_ALIAS
             value: "{{ .Values.config.sts.oauthClientSecretAlias }}"
-            ## TODO: Move STS keys to vault
           - name : EDC_IAM_STS_PRIVATEKEY_ALIAS
             value: "{{ .Values.config.sts.privateKeyAlias }}"
           - name : EDC_IAM_STS_PUBLICKEY_ID
             value: "{{ .Values.config.sts.publicKeyId }}"
           - name : EDC_IAM_ISSUER_ID
             value: "{{ .Values.config.issuerId }}"
-          - name: LOG_LEVEL
-            value: "{{ .Values.log.level | default "INFO" }}"
             ## scope settings for policy evaluation
           - name: EDC_POLICY_CATALOG_SCOPE
             value: "{{ .Values.config.scope.catalog }}"
@@ -144,6 +145,7 @@ spec:
                 key: "{{ $value.key }}"
         {{- end }}
         {{- end }}
+          ## database configuration
         {{- if .Values.postgresql.enabled }}
           - name: EDC_DATASOURCE_DEFAULT_URL
             value: jdbc:postgresql://{{ include "app.chartname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local:5432/{{ .Values.postgresql.auth.database }}
@@ -158,6 +160,7 @@ spec:
                 key: password
           - name: EDC_DATASOURCE_DEFAULT_USER
             value: {{ .Values.postgresql.auth.username }}
+            ## Extra environment variables
 {{- if .Values.extraVars }}
 {{ toYaml .Values.extraVars | indent 10 }}
 {{- end }}

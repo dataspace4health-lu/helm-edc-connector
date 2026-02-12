@@ -98,7 +98,6 @@ config:
     allowFallback: true
   sts:
     oauthTokenUrl: "http://edc-identityhub:8185/edc/ih/sts/api"
-
   iam:
   # format to add trusted issuers and their supported types
     trustedissuer:

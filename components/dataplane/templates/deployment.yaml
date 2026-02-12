@@ -63,6 +63,8 @@ spec:
           - name: tmp
             mountPath: /tmp
         env:
+          - name: LOG_LEVEL
+            value: "{{ .Values.log.level | default "INFO" }}"
           - name: EDC_PARTICIPANT_ID 
             value: "{{ .Values.config.participantId }}"
           - name: EDC_HOSTNAME
@@ -74,6 +76,7 @@ spec:
           # should point to the control plane service name and control api port
           - name: EDC_DPF_SELECTOR_URL
             value: "{{ .Values.config.dataplaneSelectorUrl }}"
+            ## all the http endpoints for data plane
           - name: WEB_HTTP_PORT
             value: "{{ .Values.config.http.port }}"
           - name: WEB_HTTP_PATH
@@ -99,11 +102,14 @@ spec:
           - name: WEB_HTTP_PUBLIC_PATH
             value: "{{ .Values.config.public.path }}"
           - name: EDC_DATAPLANE_PROXY_PUBLIC_ENDPOINT
-            value: "http://localhost:{{ .Values.config.public.port }}{{ .Values.config.public.path }}"
+            value: "{{ .Values.config.dataplaneProxyPublicEndpoint }}"
+            # TODO: keep the consistency of aliasing strategy across control plane and data plane
+            # create key with concatenation as participantcontextid#alias or just use alias directly
           - name: EDC_TRANSFER_PROXY_TOKEN_VERIFIER_PUBLICKEY_ALIAS
-            value: "{{ .Values.config.participantId }}#{{ .Values.config.stsPublicKeyAlias }}"
+            value: "{{ .Values.config.stsPublicKeyAlias }}"
           - name: EDC_TRANSFER_PROXY_TOKEN_SIGNER_PRIVATEKEY_ALIAS
-            value: "{{ .Values.config.participantId }}-{{ .Values.config.stsPrivateKeyAlias }}"
+            value: "{{ .Values.config.stsPrivateKeyAlias }}"
+             ## vault configuration
           - name: EDC_VAULT_HASHICORP_URL
             value: "{{ .Values.config.vault.url }}"
         {{- if .Values.config.vault.tokenSecretName }}
@@ -113,8 +119,7 @@ spec:
                 name: {{ .Values.config.vault.tokenSecretName }}
                 key: {{ .Values.config.vault.tokenSecretKey }}
         {{- end }}
-          - name: LOG_LEVEL
-            value: "{{ .Values.log.level | default "INFO" }}"
+         ## Extra environment variables
         {{- if .Values.secretEnv }}
         {{- range $key, $value := .Values.secretEnv }}
           - name: "{{ $key }}"
@@ -124,6 +129,8 @@ spec:
                 key: "{{ $value.key }}"
         {{- end }}
         {{- end }}
+            ## database configuration
+            ## TODO: explore dataplane interactions with database, do we need separate db or can share with control plane?
           - name: EDC_DATASOURCE_DEFAULT_URL
             value: {{ .Values.controlplane.postgresql.url }}
           - name: EDC_DATASOURCE_DEFAULT_PASSWORD

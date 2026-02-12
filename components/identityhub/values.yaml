@@ -65,6 +65,7 @@ service:
 
 config:
   sqlSchemaAutocreate: true
+  ## TODO: what is the identity hub iam id anfd public key alias
   identityHubIamId: "default"
   identityHubIamPublicKeyAlias: "default-key"
   protocol:

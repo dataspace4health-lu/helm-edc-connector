@@ -67,8 +67,12 @@ config:
   sqlSchemaAutocreate: true
   dataplaneSelfRegistration: true
   # should point to the control plane service name and control api port
-  dataplaneSelectorUrl: "http://dataplane-controlplane:8093/edc/cp/control/api/v1/dataplanes"
-  controlplaneReadinessUrl: "http://dataplane-controlplane:8181/edc/cp/base/api/check/health"
+  dataplaneSelectorUrl: "http://edc-controlplane:8093/edc/cp/control/api/v1/dataplanes"
+  controlplaneReadinessUrl: "http://edc-controlplane:8181/edc/cp/base/api/check/health"
+  # CRITICAL: Public endpoint for HTTP Data Pull transfers - must be externally accessible
+  dataplaneProxyPublicEndpoint: "https://dataspace4health.local/edc/dp/public/api"
+  ## key configuration for STS token signing and verification, here they both are same as dataplane extracts the public key and private key on its own from vault usnig the alias.
+  ## did:web:edc-user1.dataspace4health.local-alias 
   stsPrivateKeyAlias: "key-1"
   stsPublicKeyAlias: "key-1"
   http:
