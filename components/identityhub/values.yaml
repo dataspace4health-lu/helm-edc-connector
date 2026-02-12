@@ -99,7 +99,7 @@ config:
     tokenSecretKey: "token"
     url: "http://identityhub-vault:8200" #-- Vault service URL (typically {release-name}-vault) 
   participant:
-    id: "edc-user1"
+    id: "did:web:edc-user1.dataspace4health.local"
     keysign:
       algo: "EdDSA"
       curve: "Ed25519"

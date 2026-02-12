@@ -46,7 +46,12 @@ test.describe('Policy Definitions API Tests', () => {
     expect(result.createdAt).toBeDefined();
   });
 
-  test('should create policy with minimal permission (read action)', async ({ request }) => {
+  /**
+   * When a policy is defined, it shoould be bound to scopes. So far we have no specific policy defined
+   * and no rules are bound to any scopes by default. Therefore, the policy creation should fail in these cases.
+   */
+  //should fail because the 'read' is not bound to any scopes: Rule { Permission constraints: [] }
+  test('should fail to create policy with minimal permission (read action)', async ({ request }) => {
     const policyId = `test-policy-read-${Date.now()}`;
     
     const policyPayload = {
@@ -74,11 +79,8 @@ test.describe('Policy Definitions API Tests', () => {
       data: policyPayload,
     });
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result['@type']).toBe('IdResponse');
-    expect(result['@id']).toBe(policyId);
-    expect(result.createdAt).toBeDefined();
+    expect(response.ok()).toBeFalsy();
+    console.log(`odrl:Set policy with minimal permission (read action) failed with status: ${response.status()}`);
   });
 
   test('should create policy with use action', async ({ request }) => {
@@ -156,7 +158,8 @@ test.describe('Policy Definitions API Tests', () => {
     expect(result['@id']).toBe(policyId);
   });
 
-  test('should create policy with multiple permissions', async ({ request }) => {
+  //should fail because the 'read' is not bound to any scopes: Rule { Permission constraints: [] }
+  test('should fail to create policy with multiple permissions', async ({ request }) => {
     const policyId = `test-policy-multi-permissions-${Date.now()}`;
     
     const policyPayload = {
@@ -191,13 +194,12 @@ test.describe('Policy Definitions API Tests', () => {
       data: policyPayload,
     });
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result['@type']).toBe('IdResponse');
-    expect(result['@id']).toBe(policyId);
+    expect(response.ok()).toBeFalsy();
+    console.log(`odrl:Set policy with multiple permissions failed with status: ${response.status()}`);
   });
 
-  test('should create policy with prohibition', async ({ request }) => {
+  //should fail because the 'distribute' is not bound to any scopes: Rule { Prohibition constraints: [] }
+  test('should fail to create policy with prohibition', async ({ request }) => {
     const policyId = `test-policy-with-prohibition-${Date.now()}`;
     
     const policyPayload = {
@@ -229,13 +231,12 @@ test.describe('Policy Definitions API Tests', () => {
       data: policyPayload,
     });
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result['@type']).toBe('IdResponse');
-    expect(result['@id']).toBe(policyId);
+    expect(response.ok()).toBeFalsy();
+    console.log(`odrl:Set policy with prohibition failed with status: ${response.status()}`);
   });
 
-  test('should create policy with obligation', async ({ request }) => {
+ //should fail because the 'inform' is not bound to any scopes: Rule { Duty constraint: [] }
+  test('should fail to create policy with obligation', async ({ request }) => {
     const policyId = `test-policy-with-obligation-${Date.now()}`;
     
     const policyPayload = {
@@ -267,10 +268,8 @@ test.describe('Policy Definitions API Tests', () => {
       data: policyPayload,
     });
 
-    expect(response.ok()).toBeTruthy();
-    const result = await response.json();
-    expect(result['@type']).toBe('IdResponse');
-    expect(result['@id']).toBe(policyId);
+    expect(response.ok()).toBeFalsy();
+    console.log(`odrl:Set policy with obligation failed with status: ${response.status()}`);
   });
 
   test('should create policy with complex AND constraint', async ({ request }) => {
@@ -445,11 +444,7 @@ test.describe('Policy Definitions API Tests', () => {
       '@type': 'PolicyDefinition',
       policy: {
         '@type': 'odrl:Set',
-        'odrl:permission': {
-          'odrl:action': {
-            '@id': 'odrl:read',
-          },
-        },
+        'odrl:permission':[],
         'odrl:prohibition': [],
         'odrl:obligation': [],
       },
