@@ -18,7 +18,7 @@ endef
 
 define test =
 mkdir -p tests/results/${timestamp}
-docker run -d -t --name $(name) --network $(network) --ipc=host mcr.microsoft.com/playwright:v1.46.1
+docker run -d -t --name $(name) --network $(network) --ipc=host  mcr.microsoft.com/playwright:v1.57.0-jammy
 $(dns_cmd)
 docker exec $(name) bash -c "mkdir -p app/tests"
 docker cp tests $(name):/app
