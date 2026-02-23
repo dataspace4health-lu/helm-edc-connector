@@ -115,6 +115,9 @@ ingress:
       - path: "/edc/dp/control/api"
         port: 9292 ## control port
         pathType: Prefix
+      - path: "/edc/dp/public/api"
+        port: 12001 ## public data port for HTTP Pull
+        pathType: Prefix
   tls:
     - secretName: dataspace4health.local
       hosts:

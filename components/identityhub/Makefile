@@ -32,8 +32,7 @@ endif
 #Ensure the namespace exists (ignore error if it already exists)
 	kubectl create namespace $(NAMESPACE) 2> /dev/null || true
 #Install or upgrade Helm release into the namespace with Vault values
-	helm install $(CURRENT_DIR) helm/*.tgz --namespace $(NAMESPACE) -f vault-values.yaml --set vault.enabled=true
-
+	helm install $(CURRENT_DIR) helm/*.tgz --namespace $(NAMESPACE) -f vault-values.yaml
 uninstall:
 ifeq ($(strip $(NAMESPACE)),)
 	$(eval NAMESPACE := default)

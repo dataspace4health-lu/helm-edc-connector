@@ -1,4 +1,6 @@
 vault:
+  enabled: true
+
   server:
     dev:
       enabled: true
