@@ -9,6 +9,25 @@ data:
     {
       "healthCheckIntervalSeconds": 30,
       "enableUserConfig": false,
+      {{- if .Values.logoUrl }}
+      "logoUrl": "{{ .Values.logoUrl }}",
+      "logoAlt": "{{ .Values.logoAlt | default "Logo" }}",
+      {{- end }}
+      {{- if .Values.fontFamily }}
+      "fontFamily": "{{ .Values.fontFamily }}",
+      {{- end }}
+      {{- if .Values.footerText }}
+      "footerText": "{{ tpl .Values.footerText . }}",
+      {{- end }}
+      {{- $tc := dict }}
+      {{- if .Values.themeColors.primary }}{{- $_ := set $tc "primary" .Values.themeColors.primary }}{{- end }}
+      {{- if .Values.themeColors.secondary }}{{- $_ := set $tc "secondary" .Values.themeColors.secondary }}{{- end }}
+      {{- if .Values.themeColors.accent }}{{- $_ := set $tc "accent" .Values.themeColors.accent }}{{- end }}
+      {{- if .Values.themeColors.navbar }}{{- $_ := set $tc "navbar" .Values.themeColors.navbar }}{{- end }}
+      {{- if .Values.themeColors.sidebar }}{{- $_ := set $tc "sidebar" .Values.themeColors.sidebar }}{{- end }}
+      {{- if $tc }}
+      "themeColors": {{ $tc | toJson }},
+      {{- end }}
       "menuItems": [
         {
           "text": "Home",

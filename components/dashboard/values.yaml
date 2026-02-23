@@ -76,6 +76,29 @@ config:
   # federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
   # did: "did:web:dataspace4health.local"
 
+## Simple color theming (optional)
+themeColors:
+  # Primary color for buttons and main actions (hex format: #1976d2)
+  primary: ""
+  # Secondary color for secondary elements (hex format: #dc004e)  
+  secondary: ""
+  # Accent color for highlights and special elements (hex format: #00796b)
+  accent: ""
+  # Background color for the top navbar (hex format)
+  navbar: ""
+  # Background color for the left sidebar menu (hex format)
+  sidebar: ""
+
+## Branding (optional)
+# URL to the participant's logo shown in the navbar (external URL or base64 data URI)
+logoUrl: ""
+# Alt text for the logo
+logoAlt: "Logo"
+# Font family applied across the dashboard (e.g. "Roboto, sans-serif")
+fontFamily: ""
+# Footer text shown at the bottom of the dashboard (e.g. "© 2025 Acme Corp. All rights reserved.")
+footerText: ""
+
 ingress:
   enabled: true
   rewriteTargets: 
