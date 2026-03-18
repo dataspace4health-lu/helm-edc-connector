@@ -68,7 +68,7 @@ config:
   participantId: "did:web:dataspace4health.local" # DID:WEB identifier of the participant, will be used as runtime participantId
   sqlSchemaAutocreate: true
   policy:
-    catalogScope: "org.eclipse.edc.vc.type:MembershipCredential:read" # Scope for catalog policy validation
+    catalogScope: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read" # Scope for catalog policy validation
   http:
     host: ""
     port: 8181 #web http port
@@ -101,17 +101,18 @@ config:
   iam:
   # format to add trusted issuers and their supported types
     trustedissuer:
-    #   p1:
-    #     id: "did:web:dataspace4health.local"
-    #     supportedtypes:
-    #     - "MembershipCredential"
+    #  issuer1:
+          # id: "did:web:edc-issuer1.dataspace4health.local"
+          # supportedtypes:
+          # - "VerifiableCredential"
+          # - "https://w3id.org/gaia-x/2511#LegalPerson:read"
   dsp:
   #http://edc-controlplane.edc-user1.svc.cluster.local:8092/edc/cp/dsp/api
     callbackAddress: ""
   scope:
-    catalog: ""
-    contract: ""
-    transfer: ""
+    catalog: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read"  # Scope for catalog policy validation
+    contract: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read"  # Scope for contract policy validation
+    transfer: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read"  # Scope for transfer policy validation
     
 #TODO: to add ingress for all the exposed apis
 ingress:

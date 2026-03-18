@@ -123,6 +123,11 @@ pipeline {
                     def createCluster = { nodes = 0 ->
                         def cluster = [:]
 
+                        // Prune unused Docker resources from previous builds to prevent DiskPressure on k3d nodes
+                        sh "docker system prune -f --volumes 2>/dev/null || true"
+                        // Clean up any stale k3d clusters left by failed previous builds
+                        sh "k3d cluster list --no-headers 2>/dev/null | grep '^${env.HELM_NAME}-' | awk '{print \$1}' | xargs -r k3d cluster delete 2>/dev/null || true"
+
                         def registryIP = sh(script: "getent hosts ds4h-registry | awk '{print \$1}'", returnStdout: true).trim()
                         sh "k3d cluster create ${env.K3D_CLUSTER_NAME} --servers 1 --servers-memory 4G --agents ${nodes} --agents-memory 8G --no-lb --host-alias ${registryIP}:ds4h-registry --registry-config .jenkins/registry.yaml --kubeconfig-update-default=false --kubeconfig-switch-context=false"
                         sh "k3d kubeconfig get ${env.K3D_CLUSTER_NAME} > ${env.KUBECONFIG}"
@@ -160,6 +165,8 @@ pipeline {
                         sed 's#NodeHosts: |#NodeHosts: |\\n    ${cluster.server_ip} dataspace4health.local#' | \
                         kubectl apply -f -
                         """
+                        // Wait for Traefik CRDs to be (re-)established after HelmChartConfig triggers a Traefik upgrade
+                        sh "kubectl wait --for=condition=established --timeout=300s crd/middlewares.traefik.io"
                         return cluster
                     }
 
@@ -173,6 +180,8 @@ pipeline {
         stage('Post-Deployment Verification') {
             steps {
                 script {
+                    echo "Waiting 60 seconds for pods to be scheduled before rollout verification..."
+                    sleep 60
                     echo "Checking rollout status..."
                     def status = sh(
                         script: """
