@@ -28,6 +28,7 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
+      hostUsers: false
       securityContext:
 {{- include "app.securitycontext" . | nindent 8 }}
       {{- if .Values.image.pullSecrets }}

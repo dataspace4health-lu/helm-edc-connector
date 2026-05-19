@@ -81,10 +81,14 @@ Image string
 Security context
 */}}
 {{- define "app.securitycontext" -}}
-runAsNonRoot: {{ .Values.security.runAsNonRoot | default false }}
-runAsGroup: {{ .Values.security.runAsGid | default 0 }}
-runAsUser: {{ .Values.security.runAsUid | default 0 }}
-fsGroup: {{ .Values.security.runAsGid | default 0 }}
+runAsNonRoot: {{ .Values.security.runAsNonRoot | default true }}
+{{- if not (empty .Values.security.runAsGid) }}
+runAsGroup: {{ .Values.security.runAsGid }}
+fsGroup: {{ .Values.security.runAsGid }}
+{{- end }}
+{{- if not (empty .Values.security.runAsUid) }}
+runAsUser: {{ .Values.security.runAsUid }}
+{{- end }}
 {{- end -}}
 
 {{/*

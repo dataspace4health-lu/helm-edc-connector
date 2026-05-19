@@ -29,6 +29,7 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
+      hostUsers: false
       securityContext:
 {{- include "app.securitycontext" . | nindent 8 }}
       {{- if .Values.image.pullSecrets }}
@@ -38,8 +39,8 @@ spec:
       
       initContainers:
         - name: wait-for-controlplane
-          image: appropriate/curl:latest
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.image.repository }}/{{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
           securityContext:
             readOnlyRootFilesystem: true
           command:

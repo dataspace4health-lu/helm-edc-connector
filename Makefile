@@ -5,8 +5,11 @@ name ?= "playwright"
 network ?= k3d-ds4h
 # Get the ingress IP dynamically from the cluster
 ingress_ip := $(shell kubectl get ingress edc-dashboard -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "172.18.0.2")
-# configure core dns - add DNS entry for dataspace4health.local pointing to ingress IP
-dns_cmd ?= docker exec $(name) bash -c "echo '$(ingress_ip) dataspace4health.local' >> /etc/hosts"
+dashboard_host ?= $(shell sed -n 's|^DASHBOARD_BASE_URL=https://\([^/]*\).*|\1|p' tests/.env)
+management_host ?= $(shell sed -n 's|^MANAGEMENT_API_URL=https://\([^/]*\).*|\1|p' tests/.env)
+test_hosts ?= $(shell printf '%s\n%s\n' '$(dashboard_host)' '$(management_host)' | awk 'NF && !seen[$$0]++ { printf "%s ", $$0 }')
+# configure core dns - add configured test hosts pointing to the ingress IP
+dns_cmd ?= docker exec $(name) bash -c "for host in $(test_hosts); do echo '$(ingress_ip) ' \$$host >> /etc/hosts; done"
 # -f filename
 override_values ?= 
 

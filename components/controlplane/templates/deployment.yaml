@@ -28,6 +28,7 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
+      hostUsers: false
       securityContext:
 {{- include "app.securitycontext" . | nindent 8 }}
       {{- if .Values.image.pullSecrets }}
@@ -37,16 +38,16 @@ spec:
       
       initContainers:
         - name: wait-for-postgres
-          image: busybox:1.35
+          image: "{{ .Values.postgresql.image.registry }}/{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true
           command:
-            - "/bin/sh"
+            - "/bin/bash"
             - "-c"
             - |
               echo "Waiting for PostgreSQL to be ready..."
-              until nc -z {{ include "app.chartname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local 5432; do
+              until timeout 1 bash -c '</dev/tcp/{{ include "app.chartname" . }}-postgresql-hl.{{ .Release.Namespace }}.svc.cluster.local/5432' 2>/dev/null; do
                 echo "PostgreSQL is not ready yet. Retrying in 2 seconds..."
                 sleep 2
               done

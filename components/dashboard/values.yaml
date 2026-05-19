@@ -41,11 +41,11 @@ log:
 
 security:
   # -- by default, apps run as non-root
-  runAsNonRoot: false
+  runAsNonRoot: true
   # -- User used by the apps
-  runAsUid: 0
+  runAsUid:
   # -- Group used by the apps
-  runAsGid: 0
+  runAsGid:
 
 ## The web http ports is general-purpose API endpoint that may expose different resources and can be used when we write custom logic which is not part of management API or protocol API
 ## The management port is used to expose the management API of EDC

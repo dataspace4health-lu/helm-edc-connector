@@ -44,11 +44,11 @@ log:
 
 security:
   # -- by default, apps run as non-root
-  runAsNonRoot: false
+  runAsNonRoot: true
   # -- User used by the apps
-  runAsUid: 0
+  runAsUid:
   # -- Group used by the apps
-  runAsGid: 0
+  runAsGid:
 
 ## Port configuration for the Identity Hub services
 service:
