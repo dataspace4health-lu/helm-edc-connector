@@ -1,17 +1,16 @@
 vault:
   enabled: true
-
   global:
     openshift: true
   server:
-    # authDelegator:
-    #   enabled: false
+    authDelegator:
+      enabled: false
     podSpec:
       hostUsers: false
     securityContext:
       runAsNonRoot: true
-    podSecurityContext:
-      fsGroup: null
+#     podSecurityContext:
+# -      fsGroup: null
     dev:
       enabled: true
       devRootToken: "root"   # change for anything beyond local/dev

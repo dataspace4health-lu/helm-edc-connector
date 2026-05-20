@@ -16,6 +16,7 @@ override_values ?=
 #function to update helm dependencies and package the chart and save the tgz in helm directory
 define build =
 helm dependency update > /dev/null 2>&1
+rm -f helm/*.tgz
 helm package . -d helm
 endef
 

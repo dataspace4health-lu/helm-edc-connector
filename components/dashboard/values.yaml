@@ -46,6 +46,10 @@ security:
   runAsUid:
   # -- Group used by the apps
   runAsGid:
+  # -- Optional pod fsGroup. Leave unset on runtimes that reject setgroups.
+  # fsGroup:
+  # -- Optional user-namespace toggle. Only set when the cluster explicitly supports it.
+  # hostUsers: false
 
 ## The web http ports is general-purpose API endpoint that may expose different resources and can be used when we write custom logic which is not part of management API or protocol API
 ## The management port is used to expose the management API of EDC

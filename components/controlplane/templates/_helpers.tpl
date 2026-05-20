@@ -84,7 +84,9 @@ Security context
 runAsNonRoot: {{ .Values.security.runAsNonRoot | default true }}
 {{- if not (empty .Values.security.runAsGid) }}
 runAsGroup: {{ .Values.security.runAsGid }}
-fsGroup: {{ .Values.security.runAsGid }}
+{{- end }}
+{{- if hasKey .Values.security "fsGroup" }}
+fsGroup: {{ .Values.security.fsGroup }}
 {{- end }}
 {{- if not (empty .Values.security.runAsUid) }}
 runAsUser: {{ .Values.security.runAsUid }}

@@ -47,6 +47,10 @@ security:
   runAsUid:
   # -- Group used by the apps
   runAsGid:
+  # -- Optional pod fsGroup. Leave unset on runtimes that reject setgroups.
+  # fsGroup:
+  # -- Optional user-namespace toggle. Only set when the cluster explicitly supports it.
+  # hostUsers: false
 
 service:
   http:
