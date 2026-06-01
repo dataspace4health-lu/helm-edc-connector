@@ -56,5 +56,7 @@ dashboard:
     federatedCatalogEnabled: "false"
     federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
     did: "did:web:dataspace4health.local"
+    # When false, the Assets tab is hidden from the dashboard sidebar menu
+    showAssetsTab: true
 vault:
   enabled: false

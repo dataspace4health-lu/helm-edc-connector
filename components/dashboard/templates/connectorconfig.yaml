@@ -9,6 +9,7 @@ data:
     {
       "healthCheckIntervalSeconds": 30,
       "enableUserConfig": false,
+      "showAssetsTab": {{ default true .Values.config.showAssetsTab }},
       {{- if .Values.logoUrl }}
       "logoUrl": "{{ .Values.logoUrl }}",
       "logoAlt": "{{ .Values.logoAlt | default "Logo" }}",
@@ -41,12 +42,14 @@ data:
           "routerPath": "catalog",
           "viewDescription": "In the catalog view you can browse datasets of other connectors. For each dataset you can run contract negotiations to consume the data afterwards. If the selected connector has a federated catalog, the available datasets of other participants will be displayed automatically. Otherwise, you can request the catalog of other connectors configured in the dashboard. At any time you can request the catalog of unknown connectors by requesting it manually."
         },
+        {{- if ne (toString .Values.config.showAssetsTab) "false" }}
         {
           "text": "Assets",
           "materialSymbol": "deployed_code_update",
           "routerPath": "assets",
           "viewDescription": "The asset view allows you to create, edit and delete the assets (datasets) in your connector. An asset represents any data that can be shared, for example static files, streaming data or API access. The dashboard only allows you to create assets with data types that your data plane(s) support."
         },
+        {{- end }}
         {
           "text": "Policy Definitions",
           "materialSymbol": "policy",

@@ -71,6 +71,8 @@ config:
   federatedCatalogEnabled: "false"
   federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
   did: "did:web:dataspace4health.local"
+  # -- When false, the Assets tab is hidden from the dashboard sidebar menu
+  showAssetsTab: true
   # # For Data User
   # connectorName: "Data User"
   # managementUrl: "https://dataspace4health.local/edc/cp/management/api" # should point to control plane management api
