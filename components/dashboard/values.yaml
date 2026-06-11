@@ -71,6 +71,10 @@ config:
   federatedCatalogEnabled: "false"
   federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
   did: "did:web:dataspace4health.local"
+  # Base URL of the IdentityHub credentials API for Verifiable Credential import.
+  # Points to the credentials HTTP context (WEB_HTTP_CREDENTIALS_PATH, port 8183).
+  # No auth header required — the vc-import extension handles vault lookup and upstream auth.
+  identityApiUrl: "https://dataspace4health.local/edc/ih/credentials/api"
   # # For Data User
   # connectorName: "Data User"
   # managementUrl: "https://dataspace4health.local/edc/cp/management/api" # should point to control plane management api
@@ -79,6 +83,7 @@ config:
   # federatedCatalogEnabled: "false"
   # federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
   # did: "did:web:dataspace4health.local"
+  # identityApiUrl: "https://dataspace4health.local/edc/ih/credentials/api"
 
 ## Simple color theming (optional)
 themeColors:

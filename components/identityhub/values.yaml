@@ -84,6 +84,11 @@ config:
     host: ""
     port: 8182
     path: "/edc/ih/identity/api"
+    # authKey: Static API key that protects the IdentityHub identity management API context
+    # (injected as WEB_HTTP_IDENTITY_AUTH_KEY env var). Any request to port 8182 must include
+    # the header "x-api-key: <authKey>". Used by the EDC identity management API filter.
+    # NOTE: In production replace this plain-text value with a Kubernetes Secret reference
+    # via secretEnv instead of hardcoding it here.
     authKey: "password"
   credentials:
     host: ""
@@ -108,7 +113,6 @@ config:
     keysign:
       algo: "EdDSA"
       curve: "Ed25519"
-
 ingress:
   enabled: true
   hosts:

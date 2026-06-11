@@ -71,11 +71,17 @@ data:
           "materialSymbol": "schedule_send",
           "routerPath": "transfer-history",
           "viewDescription": "The transfer history view lets you browse and deprovision finished and ongoing transfer processes. You can switch between providing and consuming transfer processes of the selected connector."
+        },
+        {
+          "text": "Verifiable Credentials",
+          "materialSymbol": "verified",
+          "routerPath": "verifiable-credentials",
+          "viewDescription": "The Verifiable Credentials view allows you to manage your connector's Verifiable Credential. You can submit a new Verifiable Credential JSON or delete the existing one. Only one Verifiable Credential can be active at a time."
         }
       ]
     }
   edc-connector-config.json: |
-    [ 
+    [
       {
         "connectorName": "{{ .Values.config.connectorName }}",
         "managementUrl": "{{ .Values.config.managementUrl }}",
@@ -83,6 +89,7 @@ data:
         "protocolUrl": "{{ .Values.config.protocolUrl }}",
         "federatedCatalogEnabled": {{ .Values.config.federatedCatalogEnabled }},
         "federatedCatalogUrl": "{{ .Values.config.federatedCatalogUrl }}",
-        "did": "{{ .Values.config.did }}"
+        "did": "{{ .Values.config.did }}",
+        "identityApiUrl": "{{ .Values.config.identityApiUrl }}"
       }
     ]
