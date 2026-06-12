@@ -76,6 +76,8 @@ spec:
             value: "{{ .Values.config.sqlSchemaAutocreate | default "true" }}"
           - name: EDC_DATA_PLANE_SELF_REGISTRATION
             value: "{{ .Values.config.dataplaneSelfRegistration }}"
+          - name: EDC_DATAPLANE_AWS_SINK_CHUNK_SIZE_MB
+            value: "{{ .Values.config.s3.sinkChunkSizeMb }}"
           # should point to the control plane service name and control api port
           - name: EDC_DPF_SELECTOR_URL
             value: "{{ .Values.config.dataplaneSelectorUrl }}"

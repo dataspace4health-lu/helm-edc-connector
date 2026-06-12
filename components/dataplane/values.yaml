@@ -70,6 +70,11 @@ config:
   participantId: "did:web:dataspace4health.local" # DID:WEB identifier of the participant, will be used as runtime participantId
   sqlSchemaAutocreate: true
   dataplaneSelfRegistration: true
+  s3:
+    # Runtime config for the upstream Amazon S3 sink implementation.
+    # S3 endpoint and credential overrides are usually sent per transfer in the AmazonS3 DataAddress.
+    # If you rely on the AWS SDK default credential chain instead, provide AWS_* variables via secretEnv or extraVars.
+    sinkChunkSizeMb: 500
   # should point to the control plane service name and control api port
   dataplaneSelectorUrl: "http://edc-controlplane:8093/edc/cp/control/api/v1/dataplanes"
   controlplaneReadinessUrl: "http://edc-controlplane:8181/edc/cp/base/api/check/health"
@@ -109,6 +114,28 @@ config:
     tokenSecretName: "edc-controlplane-vault" #-- secret name where vault token is stored, if its not provided, assume that vault is not to be used.
     tokenSecretKey: "token"
     url: "http://dataplane-vault:8200" #-- Vault service URL (typically {release-name}-vault)
+    seedAwsSecret:
+      enabled: false #-- dev/bootstrap helper only; when enabled Helm runs a hook Job that writes an AWS secret token into Vault
+      kvMountPath: "secret" #-- Vault KV v2 mount used by the Hashicorp vault extension
+      keyName: "aws-cred" #-- DataAddress keyName / Vault secret alias used by the dataplane
+      edcType: "dataspaceconnector:secrettoken"
+      hookImage:
+        repository: python
+        tag: "3.12-alpine"
+        pullPolicy: IfNotPresent
+      credentials:
+        secret:
+          create: false #-- when true, the chart creates a Kubernetes Secret from the inline values below
+          name: "" #-- when create is false, use this to reference an existing Kubernetes Secret; when create is true and empty, a chart-managed name is used
+          accessKeyIdKey: "accessKeyId"
+          secretAccessKeyKey: "secretAccessKey"
+          sessionTokenKey: "sessionToken"
+          expirationKey: "expiration"
+        inline:
+          accessKeyId: "" #-- used for the chart-managed Kubernetes Secret, or as a direct dev fallback when no secret name is configured
+          secretAccessKey: ""
+          sessionToken: ""
+          expiration: ""
 
 #TODO: check if ingress is needed for dataplane or it is only called by control plane internally.
 ingress:
@@ -132,8 +159,6 @@ readinessProbe:
   enabled: false
   path: /edc/dp/base/api/check/health
   port: 8182
-
-secretEnv:
 
 controlplane:
   enabled: true

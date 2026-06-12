@@ -25,6 +25,23 @@ dataplane:
       tokenSecretName: "edc-vault" #-- Use the same secret as identityhub
       tokenSecretKey: "token"
       url: "http://edc-vault:8200" #-- Vault service URL (release-name + '-vault') 
+      seedAwsSecret:
+        enabled: false #-- optional Helm hook that writes an AWS SecretToken JSON into Vault for AmazonS3 keyName usage
+        kvMountPath: "secret"
+        keyName: "aws-cred"
+        credentials:
+          secret:
+            create: false #-- when true, the chart creates a Kubernetes Secret from the inline values below
+            name: "" #-- when create is false, reference an existing Kubernetes Secret here
+            accessKeyIdKey: "accessKeyId"
+            secretAccessKeyKey: "secretAccessKey"
+            sessionTokenKey: "sessionToken"
+            expirationKey: "expiration"
+          inline:
+            accessKeyId: "" #-- used to create the chart-managed Kubernetes Secret, or as a direct fallback when no secret name is configured
+            secretAccessKey: ""
+            sessionToken: ""
+            expiration: ""
   controlplane:
     enabled: false
     postgresql:
