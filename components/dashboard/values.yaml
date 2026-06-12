@@ -108,6 +108,27 @@ fontFamily: ""
 # Footer text shown at the bottom of the dashboard (e.g. "© 2025 Acme Corp. All rights reserved.")
 footerText: ""
 
+## Menu item visibility (optional)
+## Set enabled: false for any item you want to hide from the sidebar navigation.
+## All items are shown by default. Omitting a key also keeps the item visible.
+menuItems:
+  home:
+    enabled: true
+  catalog:
+    enabled: true
+  assets:
+    enabled: true
+  policyDefinitions:
+    enabled: true
+  contractDefinitions:
+    enabled: true
+  contracts:
+    enabled: true
+  transferHistory:
+    enabled: true
+  verifiableCredentials:
+    enabled: true
+
 ingress:
   enabled: true
   rewriteTargets: 
