@@ -265,6 +265,144 @@ The values below are the most important ones to understand when turning the char
 | `vault.server.dev.devRootToken` | Root token used by the bundled dev Vault. |
 | `vault.server.dataStorage.enabled` and `size` | Persistence settings for the bundled Vault chart. |
 
+## S3 AWS Credentials
+
+The dataplane supports S3 asset transfers. AWS credentials are stored in Vault and looked up at transfer time using the `keyName` configured in the asset's `DataAddress`. The Helm chart provides a `seedAwsSecret` hook to automate writing those credentials into Vault during deployment.
+
+### How the seeding hook works
+
+When `config.vault.seedAwsSecret.enabled: true`, the chart deploys a Kubernetes `Job` as a `post-install,post-upgrade` Helm hook. The Job runs a small Python script that writes the AWS credentials as a KV v2 secret into Vault at:
+
+```
+<kvMountPath>/data/<keyName>
+```
+
+With the default values (`kvMountPath: secret`, `keyName: aws-cred`) this becomes `secret/data/aws-cred`.
+
+The Vault secret format written by the hook and expected by the S3 extension is:
+
+```json
+{
+  "edctype": "dataspaceconnector:secrettoken",
+  "accessKeyId": "<YOUR_ACCESS_KEY_ID>",
+  "secretAccessKey": "<YOUR_SECRET_ACCESS_KEY>"
+}
+```
+
+For temporary STS credentials, also include `sessionToken` and `expiration` (Unix epoch integer).
+
+### Option A — Helm creates and manages the Kubernetes Secret (recommended for dev/test)
+
+Set `credentials.secret.create: true` and provide the credentials inline. Helm creates a Kubernetes Secret and the hook reads from it.
+
+```yaml
+dataplane:
+  config:
+    vault:
+      seedAwsSecret:
+        enabled: true
+        kvMountPath: "secret"
+        keyName: "aws-cred"
+        credentials:
+          secret:
+            create: true
+            accessKeyIdKey: "accessKeyId"
+            secretAccessKeyKey: "secretAccessKey"
+            sessionTokenKey: "sessionToken"
+            expirationKey: "expiration"
+          inline:
+            accessKeyId: "<YOUR_ACCESS_KEY_ID>"
+            secretAccessKey: "<YOUR_SECRET_ACCESS_KEY>"
+            sessionToken: ""    # optional — leave empty for permanent credentials
+            expiration: ""      # optional — leave empty for permanent credentials
+```
+
+### Option B — Use an existing Kubernetes Secret
+
+Set `credentials.secret.create: false` and provide the name of an existing Secret. The Secret **must exist in the namespace before `helm install/upgrade` is run** — the chart validates it at template-render time via a `lookup` call and the hook Job references it via `secretKeyRef`.
+
+```bash
+# Create the secret first, before running helm install/upgrade
+kubectl create secret generic my-aws-credentials \
+  --from-literal=accessKeyId=<YOUR_ACCESS_KEY_ID> \
+  --from-literal=secretAccessKey=<YOUR_SECRET_ACCESS_KEY> \
+  -n <namespace>
+```
+
+```yaml
+dataplane:
+  config:
+    vault:
+      seedAwsSecret:
+        enabled: true
+        keyName: "aws-cred"
+        credentials:
+          secret:
+            create: false
+            name: "my-aws-credentials"
+            accessKeyIdKey: "accessKeyId"
+            secretAccessKeyKey: "secretAccessKey"
+            sessionTokenKey: "sessionToken"     # key must exist or be optional
+            expirationKey: "expiration"         # key must exist or be optional
+```
+
+### Option C — Inline credentials directly in values (no Kubernetes Secret)
+
+Leave `credentials.secret.create: false` and `credentials.secret.name` empty, and provide credentials directly inline. No Kubernetes Secret is created or referenced.
+
+```yaml
+dataplane:
+  config:
+    vault:
+      seedAwsSecret:
+        enabled: true
+        keyName: "aws-cred"
+        credentials:
+          secret:
+            create: false
+            name: ""
+          inline:
+            accessKeyId: "<YOUR_ACCESS_KEY_ID>"
+            secretAccessKey: "<YOUR_SECRET_ACCESS_KEY>"
+            sessionToken: ""
+            expiration: ""
+```
+
+### Option D — Write Vault secret manually (production)
+
+Disable the hook entirely (`enabled: false`) and write the secret into Vault yourself before deploying, or as part of your secrets management process.
+
+**Vault CLI:**
+```bash
+vault kv put secret/aws-cred \
+  content='{"edctype":"dataspaceconnector:secrettoken","accessKeyId":"<YOUR_ACCESS_KEY_ID>","secretAccessKey":"<YOUR_SECRET_ACCESS_KEY>"}'
+```
+
+**curl (Vault HTTP API):**
+```bash
+curl -s -X POST \
+  -H "X-Vault-Token: $VAULT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "content": "{\"edctype\":\"dataspaceconnector:secrettoken\",\"accessKeyId\":\"<YOUR_ACCESS_KEY_ID>\",\"secretAccessKey\":\"<YOUR_SECRET_ACCESS_KEY>\"}"
+    }
+  }' \
+  http://vault:8200/v1/secret/data/aws-cred
+```
+
+The path (`secret/data/aws-cred`) and the `keyName` field must match what the dataplane expects. The `keyName` is set via:
+
+```yaml
+dataplane:
+  config:
+    vault:
+      seedAwsSecret:
+        keyName: "aws-cred"   # must match the DataAddress keyName used when registering S3 assets
+```
+
+See `edc-dataplane/README.md` for the full Vault secret schema and field reference.
+
 ## Minimum Configuration Checklist
 
 Before installing, verify these values are correct for your environment:

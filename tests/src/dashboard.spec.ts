@@ -118,6 +118,44 @@ function generateUniqueId(prefix: string): string {
   return `${prefix}-${timestamp}`;
 }
 
+// Helper to select HttpData data type and fill baseUrl in the asset creation form.
+// The data type options are loaded asynchronously from the dataplanes API, so we
+// must wait for the select to be populated before attempting a selection.
+// Using index-based selection is unreliable because the order of types (HttpData,
+// AmazonS3, ...) depends on the dataplane configuration returned by the API.
+async function fillAssetDataTypeAndUrl(page: Page, url: string): Promise<void> {
+  // Wait for the data type select to be visible (it's hidden while async loads)
+  const dataTypeSelect = page.locator('lib-asset-create select[name="dataType"]');
+  await expect(dataTypeSelect).toBeVisible({ timeout: 15000 });
+
+  // Wait for at least one option to be populated (async API call must complete)
+  await page.waitForFunction(
+    () => {
+      const sel = document.querySelector('lib-asset-create select[name="dataType"]') as HTMLSelectElement | null;
+      return sel !== null && sel.options.length > 0;
+    },
+    { timeout: 15000 },
+  );
+
+  // Prefer HttpData explicitly; fall back to the first available type
+  const options = await dataTypeSelect.locator('option').allTextContents();
+  console.log(`Available data types: ${options.join(', ')}`);
+
+  if (options.includes('HttpData')) {
+    await dataTypeSelect.selectOption('HttpData');
+    console.log('✓ Selected data type: HttpData');
+  } else {
+    await dataTypeSelect.selectOption({ index: 0 });
+    console.log(`✓ Selected first available data type: ${options[0] ?? '(unknown)'}`);
+  }
+
+  // Wait for the HttpData sub-form to render (it loads the baseUrl input asynchronously)
+  const baseUrlField = page.locator('lib-asset-create input[name="baseUrl"]');
+  await expect(baseUrlField).toBeVisible({ timeout: 10000 });
+  await baseUrlField.fill(url);
+  console.log(`✓ Entered baseUrl: ${url}`);
+}
+
 // Helper to wait for element with better error messages
 async function waitForElementWithDiagnostics(
   page: Page, 
@@ -198,25 +236,8 @@ test.describe('Integration Tests: Create REAL EDC Objects', () => {
       console.log('✓ Entered terms and conditions');
     }
 
-    // REQUIRED: Select data type (this enables the form)
-    const dataTypeSelect = page.locator('lib-asset-create select[name="dataType"], lib-asset-create select').first();
-    if (await dataTypeSelect.isVisible({ timeout: 2000 })) {
-      const optionCount = await dataTypeSelect.locator('option').count();
-      console.log(`Found ${optionCount} data type options`);
-      if (optionCount > 0) {
-        // Select first available data type (usually HttpData)
-        await dataTypeSelect.selectOption({ index: 0 });
-        await page.waitForTimeout(1000);
-        console.log('✓ Selected data type');
-      }
-    }
-
-    // REQUIRED: Enter baseUrl (required for HttpData type)
-    const baseUrlField = page.locator('lib-asset-create input[name="baseUrl"]');
-    if (await baseUrlField.isVisible({ timeout: 2000 })) {
-      await baseUrlField.fill('https://example.com/test-data');
-      console.log('✓ Entered baseUrl');
-    }
+    // REQUIRED: Select HttpData and fill baseUrl (waits for async options to load)
+    await fillAssetDataTypeAndUrl(page, 'https://example.com/test-data');
 
     // Step 5: Submit the form
     console.log('✅ Submitting asset creation form...');
@@ -517,12 +538,7 @@ test.describe('Integration Tests: Create REAL EDC Objects', () => {
       await termsAndConditionsField.fill('Edit asset terms and conditions');
     }
 
-    const dataTypeSelect = page.locator('lib-asset-create select[name="dataType"], lib-asset-create select').first();
-    await dataTypeSelect.selectOption({ index: 0 });
-    await page.waitForTimeout(1000);
-
-    const baseUrlField = page.locator('lib-asset-create input[name="baseUrl"]');
-    await baseUrlField.fill('https://example.com/original-data');
+    await fillAssetDataTypeAndUrl(page, 'https://example.com/original-data');
 
     const submitButton = page.locator('lib-asset-create button[type="submit"]:has-text("Create")');
     await submitButton.click({ force: true });
@@ -604,12 +620,7 @@ test.describe('Integration Tests: Create REAL EDC Objects', () => {
       await termsAndConditionsField.fill('Delete asset terms and conditions');
     }
 
-    const dataTypeSelect = page.locator('lib-asset-create select[name="dataType"], lib-asset-create select').first();
-    await dataTypeSelect.selectOption({ index: 0 });
-    await page.waitForTimeout(1000);
-
-    const baseUrlField = page.locator('lib-asset-create input[name="baseUrl"]');
-    await baseUrlField.fill('https://example.com/delete-me');
+    await fillAssetDataTypeAndUrl(page, 'https://example.com/delete-me');
 
     const submitButton = page.locator('lib-asset-create button[type="submit"]:has-text("Create")');
     await submitButton.click({ force: true });
