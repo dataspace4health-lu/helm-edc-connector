@@ -1,0 +1,78 @@
+{{- if .Values.keycloakImport.enabled }}
+# This Job imports the edc-dashboard-local Keycloak realm after Keycloak is fully started.
+# It uses kcadm.sh (Admin REST API) which works correctly with Keycloak 26.x
+# on the Bitnami image, avoiding the '--import-realm' startup flag issue.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "app.chartname" . }}-keycloak-realm-import
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: realm
+          configMap:
+            name: {{ include "app.chartname" . }}-keycloak-realm
+            items:
+              - key: "edc-dashboard-local-realm.json"
+                path: "realm.json"
+      initContainers:
+        - name: wait-for-keycloak
+          image: bitnamilegacy/keycloak:{{ .Values.keycloakImport.image.tag }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for Keycloak to be ready..."
+              until curl -sf {{ .Values.keycloakImport.keycloakInternalUrl }}/realms/master/.well-known/openid-configuration > /dev/null 2>&1; do
+                echo "Keycloak not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "Keycloak is ready."
+      containers:
+        - name: import-realm
+          image: bitnamilegacy/keycloak:{{ .Values.keycloakImport.image.tag }}
+          volumeMounts:
+            - name: realm
+              mountPath: /tmp/realm.json
+              subPath: realm.json
+              readOnly: true
+          env:
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloakImport.adminPasswordSecretName }}
+                  key: {{ .Values.keycloakImport.adminPasswordSecretKey }}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              KEYCLOAK_URL="{{ .Values.keycloakImport.keycloakInternalUrl }}"
+              echo "Authenticating to Keycloak at ${KEYCLOAK_URL}..."
+              /opt/bitnami/keycloak/bin/kcadm.sh config credentials \
+                --server "${KEYCLOAK_URL}" \
+                --realm master \
+                --user {{ .Values.keycloakImport.adminUser }} \
+                --password "${KEYCLOAK_ADMIN_PASSWORD}" \
+                --config /tmp/kcadm.config
+              echo "Checking if realm 'edc-dashboard-local' already exists..."
+              if /opt/bitnami/keycloak/bin/kcadm.sh get realms/edc-dashboard-local --config /tmp/kcadm.config > /dev/null 2>&1; then
+                echo "Realm 'edc-dashboard-local' already exists. Skipping import."
+              else
+                echo "Importing realm 'edc-dashboard-local'..."
+                /opt/bitnami/keycloak/bin/kcadm.sh create realms \
+                  -f /tmp/realm.json \
+                  --config /tmp/kcadm.config
+                echo "Realm 'edc-dashboard-local' imported successfully."
+              fi
+{{- end }}

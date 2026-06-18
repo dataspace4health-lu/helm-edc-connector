@@ -1,0 +1,12 @@
+{{- if .Values.keycloakImport.createRealmConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.chartname" . }}-keycloak-realm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data:
+  edc-dashboard-local-realm.json: |-
+{{ .Files.Get "edc-dashboard-local-realm.json" | indent 4 }}
+{{- end }}

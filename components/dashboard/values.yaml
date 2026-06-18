@@ -85,6 +85,39 @@ config:
   # did: "did:web:dataspace4health.local"
   # identityApiUrl: "https://dataspace4health.local/edc/ih/credentials/api"
 
+## Keycloak authentication (optional)
+## When enabled, the dashboard will redirect unauthenticated users to Keycloak for login.
+keycloak:
+  # -- Enable Keycloak authentication
+  enabled: true
+  # -- Keycloak server URL (e.g. https://keycloak.example.com)
+  url: "https://dataspace4health.local/iam"
+  # -- Keycloak realm name
+  realm: "edc-dashboard-local"
+  # -- Keycloak client ID (must be a public client with PKCE enabled)
+  clientId: "edc-dashboard"
+
+## Keycloak realm import (optional)
+## When enabled, a post-install/post-upgrade Job will import the edc-dashboard-local realm
+## into the Keycloak instance deployed by helm-edc-mdc/dca-metadata-capture.
+keycloakImport:
+  # -- Enable the realm import Job
+  enabled: false
+  # -- Create the ConfigMap containing the realm JSON (set to false if managed externally)
+  createRealmConfigMap: true
+  # -- Internal Kubernetes URL of the Keycloak service (from helm-edc-mdc)
+  ## Adjust the namespace to match where helm-edc-mdc is deployed (e.g. default or dca-metadata-capture)
+  keycloakInternalUrl: "http://dca-metadata-capture-keycloak.default.svc.cluster.local:80/iam"
+  # -- Keycloak admin username
+  adminUser: "admin"
+  # -- Name of the Secret containing the Keycloak admin password
+  adminPasswordSecretName: "dca-metadata-capture-keycloak"
+  # -- Key inside the Secret for the admin password
+  adminPasswordSecretKey: "admin-password"
+  # -- Keycloak image tag used by the import Job (must match the deployed Keycloak version)
+  image:
+    tag: "26.3.3-debian-12-r0"
+
 ## Simple color theming (optional)
 themeColors:
   # Primary color for buttons and main actions (hex format: #1976d2)

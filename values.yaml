@@ -73,5 +73,25 @@ dashboard:
     federatedCatalogEnabled: "false"
     federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
     did: "did:web:dataspace4health.local"
+  ## Keycloak authentication — redirects unauthenticated users to Keycloak for login
+  keycloak:
+    enabled: true
+    url: "https://dataspace4health.local/iam"
+    realm: "edc-dashboard-local"
+    clientId: "edc-dashboard"
+  ## Keycloak realm import — imports the edc-dashboard-local realm into the
+  ## Keycloak instance deployed by helm-edc-mdc/dca-metadata-capture.
+  ## Set enabled: true only when helm-edc-mdc is already deployed and Keycloak is running.
+  keycloakImport:
+    enabled: false
+    createRealmConfigMap: true
+    ## Internal Kubernetes URL of the Keycloak service
+    ## Adjust the namespace to match where helm-edc-mdc is deployed
+    keycloakInternalUrl: "http://dca-metadata-capture-keycloak.default.svc.cluster.local:80/iam"
+    adminUser: "admin"
+    adminPasswordSecretName: "dca-metadata-capture-keycloak"
+    adminPasswordSecretKey: "admin-password"
+    image:
+      tag: "26.3.3-debian-12-r0"
 vault:
   enabled: false

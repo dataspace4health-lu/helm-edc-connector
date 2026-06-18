@@ -28,6 +28,14 @@ data:
       {{- if $tc }}
       "themeColors": {{ $tc | toJson }},
       {{- end }}
+      {{- if .Values.keycloak.enabled }}
+      "keycloak": {
+        "enabled": true,
+        "url": "{{ .Values.keycloak.url }}",
+        "realm": "{{ .Values.keycloak.realm }}",
+        "clientId": "{{ .Values.keycloak.clientId }}"
+      },
+      {{- end }}
       {{- $menuItems := list }}
       {{- if not (eq .Values.menuItems.home.enabled false) }}
       {{-   $menuItems = append $menuItems (dict "text" "Home" "materialSymbol" "home_app_logo" "routerPath" "home" "divider" true) }}
