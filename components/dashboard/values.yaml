@@ -161,6 +161,9 @@ menuItems:
     enabled: true
   verifiableCredentials:
     enabled: true
+  # Participants tab — disabled for connectors (only applicable to the federator)
+  participants:
+    enabled: false
 
 ingress:
   enabled: true

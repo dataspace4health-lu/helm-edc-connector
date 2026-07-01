@@ -61,6 +61,9 @@ data:
       {{- if not (eq .Values.menuItems.verifiableCredentials.enabled false) }}
       {{-   $menuItems = append $menuItems (dict "text" "Verifiable Credentials" "materialSymbol" "verified" "routerPath" "verifiable-credentials" "viewDescription" "The Verifiable Credentials view allows you to manage your connector's Verifiable Credential. You can submit a new Verifiable Credential JSON or delete the existing one. Only one Verifiable Credential can be active at a time.") }}
       {{- end }}
+      {{- if not (eq .Values.menuItems.participants.enabled false) }}
+      {{-   $menuItems = append $menuItems (dict "text" "Participants" "materialSymbol" "group" "routerPath" "participants" "viewDescription" "The Participants view allows you to register and manage participants in the federated catalog. Each participant is identified by a DID and exposes a DSP endpoint for catalog crawling.") }}
+      {{- end }}
       "menuItems": {{ $menuItems | toJson }}
     }
   edc-connector-config.json: |
