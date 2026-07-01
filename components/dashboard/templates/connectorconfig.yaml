@@ -73,6 +73,7 @@ data:
         "federatedCatalogEnabled": {{ .Values.config.federatedCatalogEnabled }},
         "federatedCatalogUrl": "{{ .Values.config.federatedCatalogUrl }}",
         "did": "{{ .Values.config.did }}",
-        "identityApiUrl": "{{ .Values.config.identityApiUrl }}"
+        "identityApiUrl": "{{ .Values.config.identityApiUrl }}",
+        "negotiationEnabled": {{ .Values.config.negotiationEnabled | default true }}
       }
     ]
