@@ -73,25 +73,98 @@ dashboard:
     federatedCatalogEnabled: "false"
     federatedCatalogUrl: "https://dataspace4health.local/edc/cp/catalog/api" # should point to the federator's federated catalog api
     did: "did:web:dataspace4health.local"
-  ## Keycloak authentication — redirects unauthenticated users to Keycloak for login
+  ## Keycloak authentication — redirects unauthenticated users to Keycloak for login.
+  ## Set enabled: false when no Keycloak instance is available (disables auth entirely).
+  ## Three supported scenarios:
+  ##   1. No auth:        keycloak.enabled=false  + dashboard.keycloak.enabled=false
+  ##   2. Standalone KC:  keycloak.enabled=true   + dashboard.keycloak.enabled=true  + dashboard.keycloakImport.enabled=true
+  ##                      (keycloakImport.keycloakInternalUrl → local Keycloak, e.g. http://<release>-keycloak.<ns>.svc.cluster.local:80/iam)
+  ##   3. Shared MDC KC:  keycloak.enabled=false  + dashboard.keycloak.enabled=true  + dashboard.keycloakImport.enabled=true
+  ##                      (keycloakImport.keycloakInternalUrl → MDC Keycloak, e.g. http://dca-metadata-capture-keycloak.<ns>.svc.cluster.local:80/iam)
   keycloak:
-    enabled: true
+    enabled: false
     url: "https://dataspace4health.local/iam"
-    realm: "edc-dashboard-local"
+    realm: "dca-metadata-capture-local"
     clientId: "edc-dashboard"
-  ## Keycloak realm import — imports the edc-dashboard-local realm into the
-  ## Keycloak instance deployed by helm-edc-mdc/dca-metadata-capture.
-  ## Set enabled: true only when helm-edc-mdc is already deployed and Keycloak is running.
+  ## Keycloak realm import — imports the edc-dashboard-local realm into whichever
+  ## Keycloak instance is running (standalone or MDC-shared).
+  ## Set enabled: true whenever dashboard.keycloak.enabled is true and a Keycloak is available.
   keycloakImport:
     enabled: false
     createRealmConfigMap: true
-    ## Internal Kubernetes URL of the Keycloak service
-    ## Adjust the namespace to match where helm-edc-mdc is deployed
-    keycloakInternalUrl: "http://dca-metadata-capture-keycloak.default.svc.cluster.local:80/iam"
+    ## Internal Kubernetes URL of the target Keycloak service.
+    ## - Standalone (keycloak.enabled=true): "http://<release-name>-keycloak.<namespace>.svc.cluster.local:80/iam"
+    ##   e.g. "http://edc-connector-keycloak.default.svc.cluster.local:80/iam"
+    ## - Shared MDC Keycloak:               "http://dca-metadata-capture-keycloak.<namespace>.svc.cluster.local:80/iam"
+    keycloakInternalUrl: "http://edc-keycloak.default.svc.cluster.local:80/iam"
     adminUser: "admin"
-    adminPasswordSecretName: "dca-metadata-capture-keycloak"
+    ## Secret containing the Keycloak admin password.
+    ## - Standalone: "<release-name>-keycloak"  (e.g. "edc-connector-keycloak")
+    ## - MDC shared: "dca-metadata-capture-keycloak"
+    adminPasswordSecretName: "edc-keycloak"
     adminPasswordSecretKey: "admin-password"
     image:
       tag: "26.3.3-debian-12-r0"
+## Keycloak (optional) — deploy a standalone Keycloak instance alongside the connector.
+## Enable ONLY when helm-edc-mdc is NOT deployed in the same namespace.
+## When helm-edc-mdc is already deployed, leave this disabled and use
+## dashboard.keycloakImport to import the edc-dashboard-local realm into MDC's Keycloak.
+keycloak:
+  enabled: false   # set to true ONLY when deploying without helm-edc-mdc
+  image:
+    registry: bitnamilegacy
+    repository: keycloak
+    tag: 26.3.3-debian-12-r0
+  auth:
+    adminUser: admin
+    ## IMPORTANT: set a strong password here and keep it consistent across upgrades.
+    ## The Bitnami PostgreSQL sub-chart initializes its data directory with this
+    ## password on the FIRST install. Changing it on subsequent upgrades will cause
+    ## a mismatch between the stored DB data and the new secret, leading to
+    ## Keycloak CrashLoopBackOff. Always use the same password you used on first install.
+    adminPassword: "xfsc4Ntt!"
+  ## Serve Keycloak under the /iam/ subpath (matches the dashboard keycloak.url)
+  httpRelativePath: "/iam/"
+  proxy: edge
+  production: false
+  extraEnvVars:
+    - name: PROXY_ADDRESS_FORWARDING
+      value: "true"
+    - name: KC_HOSTNAME
+      value: "https://dataspace4health.local/iam"
+    - name: KC_HOSTNAME_STRICT
+      value: "false"
+  logging:
+    level: "INFO"
+  ingress:
+    enabled: true
+    hostname: dataspace4health.local
+    annotations:
+      kubernetes.io/ingress.class: traefik
+    tls: true
+    extraTls:
+      - hosts:
+          - dataspace4health.local
+        secretName: dataspace4health.local
+  postgresql:
+    enabled: true
+    nameOverride: keycloak-postgresql
+    image:
+      registry: bitnamilegacy
+      repository: postgresql
+      tag: 16.2.0-debian-12-r8
+    auth:
+      database: keycloak
+      username: keycloak
+      ## Must match adminPassword above and must never change after the first install.
+      password: "xfsc4Ntt!"
+      postgresPassword: "xfsc4Ntt!"
+    primary:
+      persistence:
+        size: 5Gi
+  global:
+    security:
+      allowInsecureImages: true
+
 vault:
   enabled: false

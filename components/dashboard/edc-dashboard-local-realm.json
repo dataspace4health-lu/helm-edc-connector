@@ -1,5 +1,5 @@
 {
-  "realm": "edc-dashboard-local",
+  "realm": "dca-metadata-capture-local",
   "displayName": "EDC Dashboard",
   "enabled": true,
   "sslRequired": "none",

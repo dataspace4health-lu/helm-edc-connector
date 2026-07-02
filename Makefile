@@ -81,6 +81,7 @@ endif
 	helm uninstall $(CURRENT_DIR) --namespace $(NAMESPACE) 2> /dev/null || true
 	kubectl delete pvc data-edc-controlplane-postgresql-0 -n $(NAMESPACE) 2> /dev/null || true
 	kubectl delete pvc data-edc-identityhub-postgresql-0 -n $(NAMESPACE) 2> /dev/null || true
+	kubectl delete pvc data-edc-keycloak-postgresql-0 -n $(NAMESPACE) 2> /dev/null || true
 	kubectl delete namespace $(NAMESPACE) --wait=true --timeout=60s 2> /dev/null || true
 
 clean: $(SUBDIRS)

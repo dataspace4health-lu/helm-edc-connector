@@ -242,6 +242,88 @@ The values below are the most important ones to understand when turning the char
             - `components/identityhub/values.yaml`
             - `components/dashboard/values.yaml`
 
+### Keycloak authentication
+
+The dashboard supports optional Keycloak-based authentication. The chart supports three deployment scenarios, controlled by two independent flags:
+
+| Flag | Controls |
+|---|---|
+| `keycloak.enabled` | Whether to **deploy** a Keycloak instance as part of this chart |
+| `dashboard.keycloak.enabled` | Whether the dashboard **redirects** unauthenticated users to Keycloak |
+| `dashboard.keycloakImport.enabled` | Whether a post-install Job **imports** the `edc-dashboard-local` realm into Keycloak |
+
+#### Scenario 1 — No authentication (dashboard is publicly accessible)
+
+```yaml
+keycloak:
+  enabled: false
+dashboard:
+  keycloak:
+    enabled: false
+  keycloakImport:
+    enabled: false
+```
+
+#### Scenario 2 — Standalone Keycloak (deploying `helm-edc-connector` without `helm-edc-mdc`)
+
+The chart deploys its own Keycloak instance. The realm import Job automatically imports `edc-dashboard-local` into it.
+
+> **Important:** Do **not** use this when `helm-edc-mdc` is deployed in the same namespace. Both charts would serve Keycloak at `/iam/` on the same ingress host, causing a routing conflict.
+
+```yaml
+keycloak:
+  enabled: true   # deploys a new Keycloak instance
+  auth:
+    adminPassword: "your-secure-password"
+  postgresql:
+    auth:
+      password: "your-secure-db-password"
+      postgresPassword: "your-secure-db-password"
+  global:
+    security:
+      allowInsecureImages: true   # required for the bitnamilegacy image
+
+dashboard:
+  keycloak:
+    enabled: true
+    url: "https://dataspace4health.local/iam"
+    realm: "edc-dashboard-local"
+    clientId: "edc-dashboard"
+  keycloakImport:
+    enabled: true
+    # Internal URL of the Keycloak Service deployed by this chart.
+    # Pattern: http://<release-name>-keycloak.<namespace>.svc.cluster.local:80/iam
+    keycloakInternalUrl: "http://edc-connector-keycloak.default.svc.cluster.local:80/iam"
+    adminUser: "admin"
+    # Secret name created by the Bitnami Keycloak sub-chart: <release-name>-keycloak
+    adminPasswordSecretName: "edc-connector-keycloak"
+    adminPasswordSecretKey: "admin-password"
+```
+
+#### Scenario 3 — Shared Keycloak from `helm-edc-mdc` (both charts deployed together)
+
+`helm-edc-mdc` already runs a Keycloak instance. This chart only imports the `edc-dashboard-local` realm into it.
+
+```yaml
+keycloak:
+  enabled: false   # do NOT deploy a second Keycloak
+
+dashboard:
+  keycloak:
+    enabled: true
+    url: "https://dataspace4health.local/iam"
+    realm: "edc-dashboard-local"
+    clientId: "edc-dashboard"
+  keycloakImport:
+    enabled: true
+    # Internal URL of the Keycloak service deployed by helm-edc-mdc.
+    # Adjust the namespace to match where helm-edc-mdc is deployed.
+    keycloakInternalUrl: "http://dca-metadata-capture-keycloak.default.svc.cluster.local:80/iam"
+    adminUser: "admin"
+    adminPasswordSecretName: "dca-metadata-capture-keycloak"
+    adminPasswordSecretKey: "admin-password"
+```
+
 ### Dashboard values
 
 | Value | Meaning |
