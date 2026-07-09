@@ -82,7 +82,7 @@ dashboard:
   ##   3. Shared MDC KC:  keycloak.enabled=false  + dashboard.keycloak.enabled=true  + dashboard.keycloakImport.enabled=true
   ##                      (keycloakImport.keycloakInternalUrl → MDC Keycloak, e.g. http://dca-metadata-capture-keycloak.<ns>.svc.cluster.local:80/iam)
   keycloak:
-    enabled: false
+    enabled: true
     url: "https://dataspace4health.local/iam"
     realm: "dca-metadata-capture-local"
     clientId: "edc-dashboard"

@@ -89,16 +89,16 @@ config:
 ## When enabled, the dashboard will redirect unauthenticated users to Keycloak for login.
 keycloak:
   # -- Enable Keycloak authentication
-  enabled: true
+  enabled: false
   # -- Keycloak server URL (e.g. https://keycloak.example.com)
   url: "https://dataspace4health.local/iam"
   # -- Keycloak realm name
-  realm: "edc-dashboard-local"
+  realm: "dca-metadata-capture-local"
   # -- Keycloak client ID (must be a public client with PKCE enabled)
   clientId: "edc-dashboard"
 
 ## Keycloak realm import (optional)
-## When enabled, a post-install/post-upgrade Job will import the edc-dashboard-local realm
+## When enabled, a post-install/post-upgrade Job will import the dca-metadata-capture-local realm
 ## into the Keycloak instance deployed by helm-edc-mdc/dca-metadata-capture.
 keycloakImport:
   # -- Enable the realm import Job
@@ -167,6 +167,11 @@ menuItems:
 
 ingress:
   enabled: true
+  rootRedirect:
+    # -- Redirect http(s)://dataspace4health.local/ to /edc/dashboard automatically
+    enabled: true
+    targetPath: /edc/dashboard
+    permanent: true
   rewriteTargets: 
   - regex: /edc/dashboard(/|$)(.*)
     replacement: /$2
