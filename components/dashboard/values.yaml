@@ -93,12 +93,12 @@ keycloak:
   # -- Keycloak server URL (e.g. https://keycloak.example.com)
   url: "https://dataspace4health.local/iam"
   # -- Keycloak realm name
-  realm: "dca-metadata-capture-local"
+  realm: "dataspace4health"
   # -- Keycloak client ID (must be a public client with PKCE enabled)
   clientId: "edc-dashboard"
 
 ## Keycloak realm import (optional)
-## When enabled, a post-install/post-upgrade Job will import the dca-metadata-capture-local realm
+## When enabled, a post-install/post-upgrade Job will import the dataspace4health realm
 ## into the Keycloak instance deployed by helm-edc-mdc/dca-metadata-capture.
 keycloakImport:
   # -- Enable the realm import Job

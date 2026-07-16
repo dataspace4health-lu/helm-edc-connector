@@ -84,7 +84,7 @@ dashboard:
   keycloak:
     enabled: true
     url: "https://dataspace4health.local/iam"
-    realm: "dca-metadata-capture-local"
+    realm: "dataspace4health"
     clientId: "edc-dashboard"
   ## Keycloak realm import — imports the edc-dashboard-local realm into whichever
   ## Keycloak instance is running (standalone or MDC-shared).

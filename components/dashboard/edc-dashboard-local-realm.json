@@ -1,5 +1,5 @@
 {
-  "realm": "dca-metadata-capture-local",
+  "realm": "dataspace4health",
   "displayName": "EDC Dashboard",
   "enabled": true,
   "sslRequired": "none",
@@ -137,18 +137,16 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://localhost:4200/*",
-        "https://edc-dashboard.local/*",
         "https://dataspace4health.local/*",
-        "https://edc-holder1.dataspace4health.local/*",
-        "https://edc-user1.dataspace4health.local/*"
+        "https://ntt.dataspace4health.local/*",
+        "https://hrs.dataspace4health.local/*",
+        "https://lih.dataspace4health.local/*"
       ],
       "webOrigins": [
-        "http://localhost:4200",
-        "https://edc-dashboard.local",
         "https://dataspace4health.local",
-        "https://edc-holder1.dataspace4health.local",
-        "https://edc-user1.dataspace4health.local"
+        "https://ntt.dataspace4health.local",
+        "https://hrs.dataspace4health.local",
+        "https://lih.dataspace4health.local"
       ],
       "notBefore": 0,
       "bearerOnly": false,
