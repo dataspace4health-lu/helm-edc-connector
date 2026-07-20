@@ -1,5 +1,24 @@
+# =============================================================================
+# helm-edc-connector/vault-values.yaml
+# =============================================================================
+# Vault is now deployed as a SEPARATE Helm release (helm-vault/).
+# The vault sub-chart inside helm-edc-connector is DISABLED.
+#
+# Deploy the standalone vault first:
+#   helm dependency update helm-vault/
+#   helm install edc-vault helm-vault/ -n <namespace>
+#   make -C helm-vault vault-init RELEASE=edc-vault NS=<namespace>
+#   helm upgrade edc-vault helm-vault/ -n <namespace> \
+#     --set unsealKey=<key> --set tokenSecret.value=<token>
+#
+# Then deploy the connector (vault.enabled stays false):
+#   helm install edc helm-edc-connector/ -n <namespace> \
+#     -f helm-edc-connector/values.yaml
+#
+# See helm-vault/README.md for the full setup workflow.
+# =============================================================================
 vault:
-  enabled: true
+  enabled: false
   global:
     openshift: true
   server:
