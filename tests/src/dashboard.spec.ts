@@ -1,957 +1,419 @@
 import { test, expect, Page } from '@playwright/test';
 
-const DASHBOARD_BASE_URL = process.env.DASHBOARD_BASE_URL || 'https://dataspace4health.local/edc/dashboard';
+const BASE = process.env.DASHBOARD_BASE_URL || 'https://dataspace4health.local/edc/dashboard';
 
-
-// Helper to check if page loaded correctly
-async function verifyPageLoaded(
-  page: Page,
-  expectedPath: string,
-  responseStatus?: number | null,
-): Promise<boolean> {
-  const currentUrl = page.url();
-  const pageTitle = await page.title();
-  const bodyText = await page.locator('body').textContent().catch(() => 'Could not get body text');
-  const normalizedBody = bodyText?.toLowerCase() ?? '';
-  
-  console.log(`\n🔍 Page Load Diagnostics:`);
-  console.log(`   Current URL: ${currentUrl}`);
-  console.log(`   Page Title: ${pageTitle}`);
-  console.log(`   Body Preview: ${bodyText?.substring(0, 200)}...`);
-  if (responseStatus !== undefined && responseStatus !== null) {
-    console.log(`   Verified HTTP Status: ${responseStatus}`);
-  }
-  
-  // Prefer the actual HTTP status over generic body text, because empty-state
-  // dashboard content can legitimately contain phrases like "not found".
-  const is404Status = responseStatus === 404;
-  const is404Body = normalizedBody.includes('page not found');
-  const is404 = is404Status || is404Body;
-  const is500 = (responseStatus !== undefined && responseStatus !== null && responseStatus >= 500) ||
-                normalizedBody.includes('internal server error');
-  const isConnectionError = normalizedBody.includes('connection refused') ||
-                            normalizedBody.includes('cannot connect');
-  
-  if (is404) {
-    console.error('❌ ERROR: Page returned 404 - Dashboard not found!');
-    console.error(`   Attempted URL: ${DASHBOARD_BASE_URL}${expectedPath}`);
-    console.error('   Possible causes:');
-    console.error('   - Dashboard service not deployed/running');
-    console.error('   - Incorrect DASHBOARD_BASE_URL environment variable');
-    console.error('   - Ingress/routing not configured correctly');
-    return false;
-  }
-  
-  if (is500) {
-    console.error('❌ ERROR: Page returned 500 - Server error!');
-    return false;
-  }
-  
-  if (isConnectionError) {
-    console.error('❌ ERROR: Connection refused - Service not reachable!');
-    return false;
-  }
-  
+async function verifyPageLoaded(page: Page, expectedPath: string, status?: number | null): Promise<boolean> {
+  const body = (await page.locator('body').textContent().catch(() => '')) ?? '';
+  const lower = body.toLowerCase();
+  console.log(`URL: ${page.url()} | Status: ${status}`);
+  if (status === 404 || lower.includes('page not found')) { console.error('404!'); return false; }
+  if ((status && status >= 500) || lower.includes('internal server error')) { console.error('500!'); return false; }
+  if (lower.includes('connection refused') || lower.includes('cannot connect')) { console.error('Connection error!'); return false; }
   return true;
 }
 
-// Helper to navigate with diagnostics
-async function navigateWithDiagnostics(page: Page, path: string): Promise<void> {
-  const fullUrl = `${DASHBOARD_BASE_URL}${path}`;
-  let responseStatus: number | null = null;
-  console.log(`\n🌐 Navigating to: ${fullUrl}`);
-  
-  // Listen for response to capture HTTP status
-  const responsePromise = page.waitForResponse(
-    response => response.url().includes(path),
-    { timeout: 35000 }
-  ).catch(() => null);
-  
-  try {
-    const response = await page.goto(fullUrl, { 
-      waitUntil: 'networkidle', 
-      timeout: 30000 
-    });
-    responseStatus = response?.status() ?? null;
-    
-    if (response) {
-      console.log(`   HTTP Status: ${responseStatus}`);
-      console.log(`   Status Text: ${response.statusText()}`);
-    }
-    
-    // Also check the main response
-    const mainResponse = await responsePromise;
-    if (mainResponse) {
-      console.log(`   Response URL: ${mainResponse.url()}`);
-    }
-  } catch (error) {
-    console.error(`❌ Navigation failed: ${error}`);
-    throw error;
-  }
-  
+async function nav(page: Page, path: string): Promise<void> {
+  const url = `${BASE}${path}`;
+  console.log(`Navigating to: ${url}`);
+  const rp = page.waitForResponse((r) => r.url().includes(path), { timeout: 35000 }).catch(() => null);
+  const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+  const status = response?.status() ?? null;
+  console.log(`HTTP Status: ${status}`);
+  const mr = await rp;
+  if (mr) console.log(`Response URL: ${mr.url()}`);
   await page.waitForTimeout(2000);
-  
-  const pageLoaded = await verifyPageLoaded(page, path, responseStatus);
-  if (!pageLoaded) {
-    // Take a screenshot for debugging
-    await page.screenshot({ path: `debug-navigation-failure-${Date.now()}.png`, fullPage: true });
-    throw new Error(`Page failed to load correctly. Check the screenshot and logs above.`);
+  if (!await verifyPageLoaded(page, path, status)) {
+    await page.screenshot({ path: `debug-nav-${Date.now()}.png`, fullPage: true });
+    throw new Error('Page failed to load correctly.');
   }
 }
 
-// Helper to dismiss alerts
-async function dismissAlerts(page: Page) {
-  const alertCloseButtons = page.locator('.alert button');
-  const count = await alertCloseButtons.count();
-  for (let i = 0; i < count; i++) {
-    try {
-      await alertCloseButtons.nth(i).click({ timeout: 1000 });
-    } catch (e) {
-      // Ignore if alert is already dismissed
-    }
+async function dismissAlerts(page: Page): Promise<void> {
+  const btns = page.locator('.alert button');
+  const n = await btns.count();
+  for (let i = 0; i < n; i++) {
+    try { await btns.nth(i).click({ timeout: 1000 }); } catch { /* gone */ }
   }
 }
 
-// Helper to generate unique IDs with timestamp
-function generateUniqueId(prefix: string): string {
-  const timestamp = Date.now();
-  return `${prefix}-${timestamp}`;
-}
+function uid(prefix: string): string { return `${prefix}-${Date.now()}`; }
 
-// Helper to select HttpData data type and fill baseUrl in the asset creation form.
-// The data type options are loaded asynchronously from the dataplanes API, so we
-// must wait for the select to be populated before attempting a selection.
-// Using index-based selection is unreliable because the order of types (HttpData,
-// AmazonS3, ...) depends on the dataplane configuration returned by the API.
-async function fillAssetDataTypeAndUrl(page: Page, url: string): Promise<void> {
-  // Wait for the data type select to be visible (it's hidden while async loads)
-  const dataTypeSelect = page.locator('lib-asset-create select[name="dataType"]');
-  await expect(dataTypeSelect).toBeVisible({ timeout: 15000 });
-
-  // Wait for at least one option to be populated (async API call must complete)
+async function fillDataTypeAndUrl(page: Page, url: string): Promise<void> {
+  const sel = page.locator('lib-asset-create select[name="dataType"]');
+  await expect(sel).toBeVisible({ timeout: 15000 });
   await page.waitForFunction(
-    () => {
-      const sel = document.querySelector('lib-asset-create select[name="dataType"]') as HTMLSelectElement | null;
-      return sel !== null && sel.options.length > 0;
-    },
+    () => { const s = document.querySelector('lib-asset-create select[name="dataType"]') as HTMLSelectElement | null; return s !== null && s.options.length > 0; },
     { timeout: 15000 },
   );
-
-  // Prefer HttpData explicitly; fall back to the first available type
-  const options = await dataTypeSelect.locator('option').allTextContents();
-  console.log(`Available data types: ${options.join(', ')}`);
-
-  if (options.includes('HttpData')) {
-    await dataTypeSelect.selectOption('HttpData');
-    console.log('✓ Selected data type: HttpData');
-  } else {
-    await dataTypeSelect.selectOption({ index: 0 });
-    console.log(`✓ Selected first available data type: ${options[0] ?? '(unknown)'}`);
-  }
-
-  // Wait for the HttpData sub-form to render (it loads the baseUrl input asynchronously)
-  const baseUrlField = page.locator('lib-asset-create input[name="baseUrl"]');
-  await expect(baseUrlField).toBeVisible({ timeout: 10000 });
-  await baseUrlField.fill(url);
-  console.log(`✓ Entered baseUrl: ${url}`);
+  const opts = await sel.locator('option').allTextContents();
+  if (opts.includes('HttpData')) { await sel.selectOption('HttpData'); }
+  else { await sel.selectOption({ index: 0 }); }
+  const baseUrl = page.locator('lib-asset-create input[name="baseUrl"]');
+  await expect(baseUrl).toBeVisible({ timeout: 10000 });
+  await baseUrl.fill(url);
 }
 
-// Helper to wait for element with better error messages
-async function waitForElementWithDiagnostics(
-  page: Page, 
-  selector: string, 
-  description: string,
-  timeout: number = 15000
-): Promise<void> {
-  console.log(`⏳ Waiting for ${description}...`);
-  
+async function waitFor(page: Page, selector: string, desc: string, timeout = 15000): Promise<void> {
   try {
     await page.waitForSelector(selector, { state: 'visible', timeout });
-    console.log(`✅ Found: ${description}`);
-  } catch (error) {
-    console.error(`❌ Failed to find: ${description}`);
-    console.error(`   Selector: ${selector}`);
-    
-    // Log what elements ARE on the page for debugging
-    const buttons = await page.locator('button').count();
-    const links = await page.locator('a').count();
-    console.log(`   Page has ${buttons} buttons and ${links} links`);
-    
-    // Try to find similar elements
-    const allButtons = await page.locator('button').allTextContents();
-    console.log(`   Button texts: ${allButtons.slice(0, 5).join(', ')}`);
-    
-    await page.screenshot({ path: `debug-element-not-found-${Date.now()}.png`, fullPage: true });
-    throw error;
+    console.log(`Found: ${desc}`);
+  } catch (e) {
+    console.error(`Failed to find: ${desc} | Selector: ${selector}`);
+    const btns = await page.locator('button').allTextContents();
+    console.log(`Buttons: ${btns.slice(0, 5).join(', ')}`);
+    await page.screenshot({ path: `debug-${Date.now()}.png`, fullPage: true });
+    throw e;
   }
 }
 
+async function fillAndSubmitPolicy(page: Page, policyId: string): Promise<void> {
+  const idField = page.locator('input[id="policy-id"]').first();
+  if (await idField.isVisible({ timeout: 2000 })) await idField.fill(policyId);
+  const nameField = page.locator('input[name="policyName"]').first();
+  if (await nameField.isVisible({ timeout: 2000 })) await nameField.fill(`Policy ${policyId}`);
+  const typeSelect = page.locator('lib-policy-create select[name="policyType"], lib-policy-definition-create select[name="policyType"]').first();
+  if (await typeSelect.isVisible({ timeout: 2000 })) {
+    if ((await typeSelect.locator('option').count()) > 0) {
+      try { await typeSelect.selectOption({ label: 'Set' }); }
+      catch { await typeSelect.selectOption({ index: 0 }); }
+      await page.waitForTimeout(1000);
+    }
+  }
+  const btn = page.locator('lib-policy-create button:has-text("Create Policy"), lib-policy-definition-create button:has-text("Create Policy")').first();
+  await expect(btn).toBeVisible({ timeout: 5000 });
+  await page.waitForTimeout(1000);
+  await btn.click({ force: true });
+  await page.waitForTimeout(3000);
+}
+
+async function fillAsset(page: Page, assetId: string, name: string, terms: string, dataUrl: string): Promise<void> {
+  const idField = page.locator('lib-asset-create input[id="asset-id"]').first();
+  if (await idField.isVisible({ timeout: 2000 })) await idField.fill(assetId);
+  const nameField = page.locator('lib-asset-create input[name="name"]').first();
+  if (await nameField.isVisible({ timeout: 2000 })) await nameField.fill(name);
+  const termsField = page.locator('lib-asset-create input[formcontrolname="termsAndConditions"]');
+  if (await termsField.isVisible({ timeout: 2000 })) await termsField.fill(terms);
+  await fillDataTypeAndUrl(page, dataUrl);
+}
 
 test.describe('Integration Tests: Create REAL EDC Objects', () => {
 
+  // Test 1: Create asset
   test('Create a REAL Data Asset and verify it appears in the dashboard', async ({ page }) => {
-    const assetId = generateUniqueId('test-asset');
-    
-    console.log(`\n🚀 Creating REAL asset with ID: ${assetId}`);
-    
-    // Step 1: Navigate to Assets page with diagnostics
-    await navigateWithDiagnostics(page, '/assets');
+    const assetId = uid('test-asset');
+    await nav(page, '/assets');
     await dismissAlerts(page);
-
-    // Step 2: Click Create button (use the primary one in the header)
-    console.log('📝 Opening asset creation form...');
-    await waitForElementWithDiagnostics(
-      page, 
-      'button.btn-primary.rounded-2xl:has-text("Create")', 
-      'Create button'
-    );
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-av-btn-primary', 'New data product button');
+    await page.locator('button.ds4h-av-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
-
-    // Step 3: Verify asset creation form is displayed
-    const assetForm = page.locator('lib-asset-create');
-    await expect(assetForm).toBeVisible({ timeout: 10000 });
-
-    // Step 4: Fill the asset form
-    console.log(`📝 Filling asset form with ID: ${assetId}`);
-    
-    // Asset ID
-    const assetIdField = page.locator('lib-asset-create input[id*="id"], lib-asset-create input[placeholder*="ID"]').first();
-    if (await assetIdField.isVisible({ timeout: 2000 })) {
-      await assetIdField.fill(assetId);
-    }
-
-    // Asset Name
-    const nameField = page.locator('lib-asset-create input[formcontrolname="name"]').first();
-    if (await nameField.isVisible({ timeout: 2000 })) {
-      await nameField.fill(`Test Asset Created at ${new Date().toLocaleString()}`);
-    }
-
-    
-    // REQUIRED: Terms and Conditions
-    const termsAndConditionsField = page.locator('lib-asset-create input[formcontrolname="termsAndConditions"]');
-    if (await termsAndConditionsField.isVisible({ timeout: 2000 })) {
-      await termsAndConditionsField.fill('Test terms and conditions');
-      console.log('✓ Entered terms and conditions');
-    }
-
-    // REQUIRED: Select HttpData and fill baseUrl (waits for async options to load)
-    await fillAssetDataTypeAndUrl(page, 'https://example.com/test-data');
-
-    // Step 5: Submit the form
-    console.log('✅ Submitting asset creation form...');
-    const submitButton = page.locator('lib-asset-create button[type="submit"]:has-text("Create")');
-    await expect(submitButton).toBeVisible({ timeout: 5000 });
-    
+    await expect(page.locator('lib-asset-create')).toBeVisible({ timeout: 10000 });
+    await fillAsset(page, assetId, 'Test Asset', 'Test terms', 'https://example.com/test-data');
+    const submitBtn = page.locator('lib-asset-create button[type="submit"]:has-text("Create Data Product")');
+    await expect(submitBtn).toBeVisible({ timeout: 5000 });
     await page.waitForTimeout(1000);
-    await submitButton.click({ force: true });
-    
-    // Wait for the submission to complete
+    await submitBtn.click({ force: true });
     await page.waitForTimeout(3000);
-
-    // Step 6: Verify success
-    console.log('🔍 Verifying asset creation...');
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Step 7: Navigate back to assets page and verify the asset is visible
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    
-    // Verify the created asset appears
-    const assetCard = page.locator('lib-asset-card').filter({ hasText: assetId });
-    await expect(assetCard).toBeVisible({ timeout: 15000 });
-    
-    console.log(`✅ SUCCESS! Asset "${assetId}" is now visible in the dashboard!`);
-    console.log(`🌐 View it at: ${DASHBOARD_BASE_URL}/assets\n`);
+    await expect(page.locator('tr').filter({ hasText: assetId })).toBeVisible({ timeout: 15000 });
+    console.log(`Asset "${assetId}" visible!`);
   });
 
+  // Test 2: Create policy
   test('Create a REAL Policy and verify it appears in the dashboard', async ({ page }) => {
-    const policyId = generateUniqueId('test-policy');
-    
-    console.log(`\n🚀 Creating REAL policy with ID: ${policyId}`);
-    
-    // Step 1: Navigate to Policies page with diagnostics
-    await navigateWithDiagnostics(page, '/policies');
+    const policyId = uid('test-policy');
+    await nav(page, '/policies');
     await dismissAlerts(page);
-
-    // Step 2: Click Create button
-    console.log('📝 Opening policy creation form...');
-    await waitForElementWithDiagnostics(
-      page, 
-      'button.btn-primary.rounded-2xl:has-text("Create")', 
-      'Create button'
-    );
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-pv-btn-primary', 'New policy button');
+    await page.locator('button.ds4h-pv-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
-
-    // Step 3: Verify policy creation form is displayed
-    const policyForm = page.locator('lib-policy-create, lib-policy-definition-create');
-    await expect(policyForm).toBeVisible({ timeout: 10000 });
-
-    // Step 4: Fill policy form
-    console.log(`📝 Filling policy form with ID: ${policyId}`);
-    
-    const policyIdField = page.locator('input[id*="id"], input[placeholder*="ID"]').first();
-    if (await policyIdField.isVisible({ timeout: 2000 })) {
-      await policyIdField.fill(policyId);
-    }
-
-    const policyNameField = page.locator('input[name="policyName"], input[placeholder*="Policy Name"]').first();
-    if (await policyNameField.isVisible({ timeout: 2000 })) {
-      await policyNameField.fill(`Policy ${policyId}`);
-    }
-
-    // REQUIRED: Select policy type (e.g., "Set")
-    const policyTypeSelect = page.locator('lib-policy-create select, lib-policy-definition-create select').first();
-    if (await policyTypeSelect.isVisible({ timeout: 2000 })) {
-      const options = await policyTypeSelect.locator('option').count();
-      console.log(`Found ${options} policy type options`);
-      if (options > 0) {
-        // Try to select "Set" option by value or index
-        try {
-          await policyTypeSelect.selectOption({ label: 'Set' });
-          console.log('✓ Selected policy type: Set');
-        } catch {
-          await policyTypeSelect.selectOption({ index: 0 });
-          console.log('✓ Selected first policy type');
-        }
-        await page.waitForTimeout(1000);
-      }
-    }
-
-    // Step 5: Submit the form
-    console.log('✅ Submitting policy creation form...');
-    let submitButton = page.locator('button[type="submit"]:has-text("Create")').first();
-    if (!await submitButton.isVisible({ timeout: 2000 })) {
-      submitButton = page.locator('button.btn-primary:has-text("Create")').first();
-    }
-    
-    await expect(submitButton).toBeVisible({ timeout: 5000 });
-    await page.waitForTimeout(1000);
-    await submitButton.click({ force: true });
-    
-    // Wait for submission to complete
-    await page.waitForTimeout(3000);
-
-    // Step 6: Verify success
-    console.log('🔍 Verifying policy creation...');
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Step 7: Navigate back to policies page and verify the policy is visible
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    await expect(page.locator('lib-policy-create, lib-policy-definition-create')).toBeVisible({ timeout: 10000 });
+    await fillAndSubmitPolicy(page, policyId);
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(5000);
-    
-    // Wait for policy cards to appear
-    await page.waitForSelector('lib-policy-card', { state: 'attached', timeout: 15000 }).catch(() => {});
-    
-    // Count policy cards
-    const policyCardCount = await page.locator('lib-policy-card').count();
-    console.log(`Found ${policyCardCount} policy card(s) on the page`);
-    
-    // Verify at least one policy card exists (our created policy)
-    await expect(page.locator('lib-policy-card')).toHaveCount(policyCardCount, { timeout: 5000 });
-    expect(policyCardCount).toBeGreaterThan(0);
-    
-    console.log(`✅ SUCCESS! Policy "${policyId}" has been created and is visible in the dashboard!`);
-    console.log(`🌐 View it at: ${DASHBOARD_BASE_URL}/policies\n`);
+    await page.waitForSelector('table.ds4h-table tbody tr', { state: 'attached', timeout: 15000 }).catch(() => {});
+    const rowCount = await page.locator('table.ds4h-table tbody tr').count();
+    expect(rowCount).toBeGreaterThan(0);
+    console.log(`Policy "${policyId}" created!`);
   });
 
+  // Test 3: Create contract definition
   test('Create a REAL Contract Definition and verify it appears in the dashboard', async ({ page }) => {
-    const contractId = generateUniqueId('test-contract');
-    const policyIdForContract = generateUniqueId('contract-policy');
-    
-    console.log(`\n🚀 Step 1: Creating a policy first for the contract definition...`);
-    
-    // First, create a policy to use in the contract
-    await navigateWithDiagnostics(page, '/policies');
+    const contractId = uid('test-contract');
+    const policyIdForContract = uid('contract-policy');
+
+    await nav(page, '/policies');
     await dismissAlerts(page);
-
-    await waitForElementWithDiagnostics(
-      page, 
-      'button.btn-primary.rounded-2xl:has-text("Create")', 
-      'Create button (for policy)'
-    );
-    const createPolicyButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createPolicyButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-pv-btn-primary', 'New policy button');
+    await page.locator('button.ds4h-pv-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
+    await expect(page.locator('lib-policy-create, lib-policy-definition-create')).toBeVisible({ timeout: 10000 });
+    await fillAndSubmitPolicy(page, policyIdForContract);
 
-    const policyForm = page.locator('lib-policy-create, lib-policy-definition-create');
-    await expect(policyForm).toBeVisible({ timeout: 10000 });
-
-    const policyIdField = page.locator('input[id*="id"], input[placeholder*="ID"]').first();
-    if (await policyIdField.isVisible({ timeout: 2000 })) {
-      await policyIdField.fill(policyIdForContract);
-    }
-
-    const policyNameField = page.locator('input[name="policyName"], input[placeholder*="Policy Name"]').first();
-    if (await policyNameField.isVisible({ timeout: 2000 })) {
-      await policyNameField.fill(`Policy ${policyIdForContract}`);
-    }
-
-    const policyTypeSelect = page.locator('lib-policy-create select, lib-policy-definition-create select').first();
-    if (await policyTypeSelect.isVisible({ timeout: 2000 })) {
-      try {
-        await policyTypeSelect.selectOption({ label: 'Set' });
-      } catch {
-        await policyTypeSelect.selectOption({ index: 0 });
-      }
-      await page.waitForTimeout(1000);
-    }
-
-    let submitPolicyButton = page.locator('button[type="submit"]:has-text("Create")').first();
-    if (!await submitPolicyButton.isVisible({ timeout: 2000 })) {
-      submitPolicyButton = page.locator('button.btn-primary:has-text("Create")').first();
-    }
-    
-    await submitPolicyButton.click({ force: true });
-    await page.waitForTimeout(3000);
-    
-    console.log(`✅ Policy "${policyIdForContract}" created!`);
-    console.log(`\n🚀 Step 2: Now creating contract definition with ID: ${contractId}`);
-    
-    // Now create the contract definition
-    await navigateWithDiagnostics(page, '/contract-definitions');
+    await nav(page, '/contract-definitions');
     await dismissAlerts(page);
-
-    const initialCardCount = await page.locator('lib-contract-definition-card').count();
-    console.log(`Currently ${initialCardCount} contract definition(s) in the dashboard`);
-
-    // Click Create button
-    console.log('📝 Opening contract definition creation form...');
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-pv-btn-primary', 'New offer definition button');
+    await page.locator('button.ds4h-pv-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
-
-    // Verify contract definition creation form is displayed
     const contractForm = page.locator('lib-contract-definition-create');
     await expect(contractForm).toBeVisible({ timeout: 10000 });
 
-    // Fill contract definition form
-    console.log(`📝 Filling contract definition form with ID: ${contractId}`);
-    
-    const contractIdField = page.locator('lib-contract-definition-create input[id*="id"], lib-contract-definition-create input[placeholder*="ID"]').first();
-    if (await contractIdField.isVisible({ timeout: 2000 })) {
-      await contractIdField.fill(contractId);
-    }
+    const contractIdField = contractForm.locator('input[id="cd-id"]').first();
+    if (await contractIdField.isVisible({ timeout: 2000 })) await contractIdField.fill(contractId);
 
-    // Select access policy (first dropdown) - should now have our created policy
-    const accessPolicySelect = page.locator('lib-contract-definition-create select').first();
-    if (await accessPolicySelect.isVisible({ timeout: 2000 })) {
-      const policyOptions = await accessPolicySelect.locator('option').count();
-      console.log(`Found ${policyOptions} access policy options`);
-      if (policyOptions > 1) {
-        // Try to find and select our created policy
-        try {
-          await accessPolicySelect.selectOption({ label: policyIdForContract });
-          console.log(`✓ Selected our policy: ${policyIdForContract}`);
-        } catch {
-          // If not found by label, select first available
-          await accessPolicySelect.selectOption({ index: 1 });
-          console.log('✓ Selected first available policy');
-        }
-        await page.waitForTimeout(500);
+    const accessSel = contractForm.locator('select[id="cd-access-policy"]');
+    if (await accessSel.isVisible({ timeout: 5000 })) {
+      if ((await accessSel.locator('option').count()) > 1) {
+        try { await accessSel.selectOption({ label: policyIdForContract }); }
+        catch { await accessSel.selectOption({ index: 1 }); }
       }
+      await page.waitForTimeout(500);
     }
 
-    // Select contract policy (second dropdown)
-    const contractPolicySelect = page.locator('lib-contract-definition-create select').nth(1);
-    if (await contractPolicySelect.isVisible({ timeout: 2000 })) {
-      const policyOptions = await contractPolicySelect.locator('option').count();
-      if (policyOptions > 1) {
-        try {
-          await contractPolicySelect.selectOption({ label: policyIdForContract });
-        } catch {
-          await contractPolicySelect.selectOption({ index: 1 });
-        }
-        await page.waitForTimeout(500);
+    const contractSel = contractForm.locator('select[id="cd-contract-policy"]');
+    if (await contractSel.isVisible({ timeout: 2000 })) {
+      if ((await contractSel.locator('option').count()) > 1) {
+        try { await contractSel.selectOption({ label: policyIdForContract }); }
+        catch { await contractSel.selectOption({ index: 1 }); }
       }
+      await page.waitForTimeout(500);
     }
 
-    // Submit the form
-    console.log('✅ Submitting contract definition creation form...');
-    const submitButton = page.locator('lib-contract-definition-create button[type="submit"]:has-text("Create")');
-    await expect(submitButton).toBeVisible({ timeout: 5000 });
-    
+    const submitBtn = contractForm.locator('button[type="submit"]:has-text("Create Offer Definition")');
+    await expect(submitBtn).toBeVisible({ timeout: 5000 });
     await page.waitForTimeout(1000);
-    await submitButton.click({ force: true });
-    
-    // Wait for submission to complete
+    await submitBtn.click({ force: true });
     await page.waitForTimeout(3000);
 
-    // Verify success
-    console.log('🔍 Verifying contract definition creation...');
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Navigate back to contract definitions page and verify it appears
-    await page.goto(`${DASHBOARD_BASE_URL}/contract-definitions`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/contract-definitions`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    
-    // Verify the created contract definition appears
-    const contractCard = page.locator('lib-contract-definition-card').filter({ hasText: contractId });
-    await expect(contractCard).toBeVisible({ timeout: 15000 });
-    
-    console.log(`✅ SUCCESS! Contract Definition "${contractId}" is now visible in the dashboard!`);
-    console.log(`🌐 View it at: ${DASHBOARD_BASE_URL}/contract-definitions\n`);
+    await expect(page.locator('tr').filter({ hasText: contractId })).toBeVisible({ timeout: 15000 });
+    console.log(`Contract definition "${contractId}" visible!`);
   });
 
+  // Test 4: Edit asset
   test('Edit a REAL Data Asset and verify changes', async ({ page }) => {
-    const assetId = generateUniqueId('edit-asset');
-    const updatedName = `Updated Asset ${new Date().toLocaleString()}`;
-    
-    console.log(`\n🚀 Step 1: Creating asset to edit with ID: ${assetId}`);
-    
-    // Create an asset first
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    const assetId = uid('edit-asset');
+    console.log(`Creating asset to edit: ${assetId}`);
+
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(2000);
     await dismissAlerts(page);
 
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-av-btn-primary', 'New data product button');
+    await page.locator('button.ds4h-av-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
+    await expect(page.locator('lib-asset-create')).toBeVisible({ timeout: 10000 });
+    await fillAsset(page, assetId, `Original Asset ${assetId}`, 'Edit asset terms', 'https://example.com/original-data');
 
-    const assetIdField = page.locator('lib-asset-create input[id*="id"], lib-asset-create input[placeholder*="ID"]').first();
-    if (await assetIdField.isVisible({ timeout: 2000 })) {
-      await assetIdField.fill(assetId);
-    }
-
-    const nameField = page.locator('lib-asset-create input[formcontrolname="name"]').first();
-    if (await nameField.isVisible({ timeout: 2000 })) {
-      await nameField.fill(`Original Asset Name ${assetId}`);
-    }
-
-    const termsAndConditionsField = page.locator('lib-asset-create input[formcontrolname="termsAndConditions"]');
-    if (await termsAndConditionsField.isVisible({ timeout: 2000 })) {
-      await termsAndConditionsField.fill('Edit asset terms and conditions');
-    }
-
-    await fillAssetDataTypeAndUrl(page, 'https://example.com/original-data');
-
-    const submitButton = page.locator('lib-asset-create button[type="submit"]:has-text("Create")');
-    await submitButton.click({ force: true });
+    const createBtn = page.locator('lib-asset-create button[type="submit"]:has-text("Create Data Product")');
+    await expect(createBtn).toBeVisible({ timeout: 5000 });
+    await createBtn.click({ force: true });
     await page.waitForTimeout(3000);
+    console.log(`Asset "${assetId}" created, now editing...`);
 
-    console.log(`✅ Asset "${assetId}" created!`);
-    console.log(`\n🚀 Step 2: Now editing the asset...`);
-
-    // Navigate back to assets page
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
     await dismissAlerts(page);
 
-    // Find and click edit button on our asset
-    const assetCard = page.locator('lib-asset-card').filter({ hasText: assetId });
-    await expect(assetCard).toBeVisible({ timeout: 10000 });
-    
-    const editButton = assetCard.locator('i:has-text("edit")');
-    await editButton.click({ force: true });
+    // Assets are in table rows — find the edit button in the row
+    const assetRow = page.locator('tr').filter({ hasText: assetId });
+    await expect(assetRow).toBeVisible({ timeout: 10000 });
+    await assetRow.locator('button[title="Edit"]').click({ force: true });
     await page.waitForTimeout(2000);
 
-    // Verify edit form is displayed
     const editForm = page.locator('lib-asset-create');
     await expect(editForm).toBeVisible({ timeout: 10000 });
-
-    // Just click Update without modifying (like the Cypress test does)
-    // The important part is verifying the edit flow works
     await page.waitForTimeout(1000);
 
-    // Submit the update
-    const updateButton = page.locator('lib-asset-create button:has-text("Update Asset")');
-    await expect(updateButton).toBeVisible({ timeout: 5000 });
-    await updateButton.click({ force: true });
+    // Submit update — new text: "Update Data Product"
+    const updateBtn = page.locator('lib-asset-create button[type="submit"]:has-text("Update Data Product")');
+    await expect(updateBtn).toBeVisible({ timeout: 5000 });
+    await updateBtn.click({ force: true });
     await page.waitForTimeout(3000);
 
-    // Verify success
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Navigate back and verify the updated asset
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    
-    const updatedAssetCard = page.locator('lib-asset-card').filter({ hasText: assetId });
-    await expect(updatedAssetCard).toBeVisible({ timeout: 10000 });
-    
-    console.log(`✅ SUCCESS! Asset "${assetId}" has been updated!`);
-    console.log(`🌐 View it at: ${DASHBOARD_BASE_URL}/assets\n`);
+    await expect(page.locator('tr').filter({ hasText: assetId })).toBeVisible({ timeout: 10000 });
+    console.log(`Asset "${assetId}" updated!`);
   });
 
+  // Test 5: Delete asset
   test('Delete a REAL Data Asset and verify removal', async ({ page }) => {
-    const assetId = generateUniqueId('delete-asset');
-    
-    console.log(`\n🚀 Step 1: Creating asset to delete with ID: ${assetId}`);
-    
-    // Create an asset first
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    const assetId = uid('delete-asset');
+    console.log(`Creating asset to delete: ${assetId}`);
+
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(2000);
     await dismissAlerts(page);
 
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-av-btn-primary', 'New data product button');
+    await page.locator('button.ds4h-av-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
+    await expect(page.locator('lib-asset-create')).toBeVisible({ timeout: 10000 });
+    await fillAsset(page, assetId, `Asset to Delete ${assetId}`, 'Delete asset terms', 'https://example.com/delete-me');
 
-    const assetIdField = page.locator('lib-asset-create input[id*="id"], lib-asset-create input[placeholder*="ID"]').first();
-    if (await assetIdField.isVisible({ timeout: 2000 })) {
-      await assetIdField.fill(assetId);
-    }
-
-    const nameField = page.locator('lib-asset-create input[formcontrolname="name"]').first();
-    if (await nameField.isVisible({ timeout: 2000 })) {
-      await nameField.fill(`Asset to Delete ${assetId}`);
-    }
-
-    const termsAndConditionsField = page.locator('lib-asset-create input[formcontrolname="termsAndConditions"]');
-    if (await termsAndConditionsField.isVisible({ timeout: 2000 })) {
-      await termsAndConditionsField.fill('Delete asset terms and conditions');
-    }
-
-    await fillAssetDataTypeAndUrl(page, 'https://example.com/delete-me');
-
-    const submitButton = page.locator('lib-asset-create button[type="submit"]:has-text("Create")');
-    await submitButton.click({ force: true });
+    const createBtn = page.locator('lib-asset-create button[type="submit"]:has-text("Create Data Product")');
+    await expect(createBtn).toBeVisible({ timeout: 5000 });
+    await createBtn.click({ force: true });
     await page.waitForTimeout(3000);
+    console.log(`Asset "${assetId}" created, now deleting...`);
 
-    console.log(`✅ Asset "${assetId}" created!`);
-    console.log(`\n🚀 Step 2: Now deleting the asset...`);
-
-    // Navigate back to assets page
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
     await dismissAlerts(page);
 
-    // Find and click delete button on our asset
-    const assetCard = page.locator('lib-asset-card').filter({ hasText: assetId });
-    await expect(assetCard).toBeVisible({ timeout: 10000 });
-    
-    const deleteButton = assetCard.locator('i:has-text("delete")');
-    await deleteButton.click({ force: true });
+    const assetRow = page.locator('tr').filter({ hasText: assetId });
+    await expect(assetRow).toBeVisible({ timeout: 10000 });
+    await assetRow.locator('button[title="Delete"]').click({ force: true });
     await page.waitForTimeout(2000);
 
-    // Verify delete confirmation dialog appears
+    // Delete confirmation dialog
     const deleteConfirm = page.locator('lib-delete-confirm');
     await expect(deleteConfirm).toBeVisible({ timeout: 10000 });
-    
-    // Verify the asset card is shown in the confirmation
     const confirmAssetCard = deleteConfirm.locator('lib-asset-card');
     await expect(confirmAssetCard).toBeVisible();
 
-    // Click the Delete button in confirmation dialog
-    const confirmDeleteButton = deleteConfirm.locator('button:has-text("Delete")');
-    await confirmDeleteButton.click({ force: true });
+    // Confirm delete — new button class: ds4h-dc-btn-delete
+    const confirmBtn = deleteConfirm.locator('button.ds4h-dc-btn-delete');
+    await confirmBtn.click({ force: true });
     await page.waitForTimeout(3000);
 
-    // Verify success
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Navigate back and verify the asset is no longer visible
-    await page.goto(`${DASHBOARD_BASE_URL}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/assets`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    
-    const deletedAssetCard = page.locator('lib-asset-card').filter({ hasText: assetId });
-    await expect(deletedAssetCard).not.toBeVisible();
-    
-    console.log(`✅ SUCCESS! Asset "${assetId}" has been deleted!`);
-    console.log(`🌐 Verify at: ${DASHBOARD_BASE_URL}/assets\n`);
+    await expect(page.locator('tr').filter({ hasText: assetId })).not.toBeVisible();
+    console.log(`Asset "${assetId}" deleted!`);
   });
 
+  // Test 6: Edit policy
   test('Edit a REAL Policy and verify changes', async ({ page }) => {
-    const policyId = generateUniqueId('edit-policy');
-    
-    console.log(`\n🚀 Step 1: Creating policy to edit with ID: ${policyId}`);
-    
-    // Create a policy first
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    const policyId = uid('edit-policy');
+    console.log(`Creating policy to edit: ${policyId}`);
+
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(2000);
     await dismissAlerts(page);
 
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-pv-btn-primary', 'New policy button');
+    await page.locator('button.ds4h-pv-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
+    await expect(page.locator('lib-policy-create, lib-policy-definition-create')).toBeVisible({ timeout: 10000 });
+    await fillAndSubmitPolicy(page, policyId);
+    console.log(`Policy "${policyId}" created, now editing...`);
 
-    const policyIdField = page.locator('input[id*="id"], input[placeholder*="ID"]').first();
-    if (await policyIdField.isVisible({ timeout: 2000 })) {
-      await policyIdField.fill(policyId);
-    }
-
-    const policyNameField = page.locator('input[name="policyName"], input[placeholder*="Policy Name"]').first();
-    if (await policyNameField.isVisible({ timeout: 2000 })) {
-      await policyNameField.fill(`Policy ${policyId}`);
-    }
-
-    const policyTypeSelect = page.locator('lib-policy-create select, lib-policy-definition-create select').first();
-    if (await policyTypeSelect.isVisible({ timeout: 2000 })) {
-      try {
-        await policyTypeSelect.selectOption({ label: 'Set' });
-      } catch {
-        await policyTypeSelect.selectOption({ index: 0 });
-      }
-      await page.waitForTimeout(1000);
-    }
-
-    let submitButton = page.locator('button[type="submit"]:has-text("Create")').first();
-    if (!await submitButton.isVisible({ timeout: 2000 })) {
-      submitButton = page.locator('button.btn-primary:has-text("Create")').first();
-    }
-    await submitButton.click({ force: true });
-    await page.waitForTimeout(3000);
-
-    console.log(`✅ Policy "${policyId}" created!`);
-    console.log(`\n🚀 Step 2: Now editing the policy...`);
-
-    // Navigate back to policies page
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
     await dismissAlerts(page);
 
-    // Find and click edit button on our policy
-    const policyCard = page.locator('lib-policy-card').filter({ hasText: policyId });
-    await expect(policyCard).toBeVisible({ timeout: 10000 });
-    
-    const editButton = policyCard.locator('i:has-text("edit")');
-    await editButton.click({ force: true });
+    const policyRow = page.locator('tr').filter({ hasText: policyId });
+    await expect(policyRow).toBeVisible({ timeout: 10000 });
+    await policyRow.locator('button[title="Edit"]').click({ force: true });
     await page.waitForTimeout(2000);
 
-    // Verify edit form is displayed
     const editForm = page.locator('lib-policy-create, lib-policy-definition-create');
     await expect(editForm).toBeVisible({ timeout: 10000 });
-
-    // Just click Update without modifying (like the Cypress test does)
     await page.waitForTimeout(1000);
 
-    // Submit the update (policies have limited editable fields)
-    const updateButton = page.locator('button:has-text("Update Policy")');
-    await expect(updateButton).toBeVisible({ timeout: 5000 });
-    await updateButton.click({ force: true });
+    // Submit update — new text: "Update Policy"
+    const updateBtn = page.locator('button:has-text("Update Policy")');
+    await expect(updateBtn).toBeVisible({ timeout: 5000 });
+    await updateBtn.click({ force: true });
     await page.waitForTimeout(3000);
 
-    // Verify success
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Navigate back and verify the policy still exists
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    
-    const updatedPolicyCard = page.locator('lib-policy-card').filter({ hasText: policyId });
-    await expect(updatedPolicyCard).toBeVisible({ timeout: 10000 });
-    
-    console.log(`✅ SUCCESS! Policy "${policyId}" has been updated!`);
-    console.log(`🌐 View it at: ${DASHBOARD_BASE_URL}/policies\n`);
+    await expect(page.locator('tr').filter({ hasText: policyId })).toBeVisible({ timeout: 10000 });
+    console.log(`Policy "${policyId}" updated!`);
   });
 
+  // Test 7: Delete policy
   test('Delete a REAL Policy and verify removal', async ({ page }) => {
-    const policyId = generateUniqueId('delete-policy');
-    
-    console.log(`\n🚀 Step 1: Creating policy to delete with ID: ${policyId}`);
-    
-    // Create a policy first
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    const policyId = uid('delete-policy');
+    console.log(`Creating policy to delete: ${policyId}`);
+
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(2000);
     await dismissAlerts(page);
 
-    const createButton = page.locator('button.btn-primary.rounded-2xl:has-text("Create")').first();
-    await createButton.click({ force: true });
+    await waitFor(page, 'button.ds4h-pv-btn-primary', 'New policy button');
+    await page.locator('button.ds4h-pv-btn-primary').first().click({ force: true });
     await page.waitForTimeout(1500);
+    await expect(page.locator('lib-policy-create, lib-policy-definition-create')).toBeVisible({ timeout: 10000 });
+    await fillAndSubmitPolicy(page, policyId);
+    console.log(`Policy "${policyId}" created, now deleting...`);
 
-    const policyIdField = page.locator('input[id*="id"], input[placeholder*="ID"]').first();
-    if (await policyIdField.isVisible({ timeout: 2000 })) {
-      await policyIdField.fill(policyId);
-    }
-
-    const policyNameField = page.locator('input[name="policyName"], input[placeholder*="Policy Name"]').first();
-    if (await policyNameField.isVisible({ timeout: 2000 })) {
-      await policyNameField.fill(`Policy ${policyId}`);
-    }
-
-    const policyTypeSelect = page.locator('lib-policy-create select, lib-policy-definition-create select').first();
-    if (await policyTypeSelect.isVisible({ timeout: 2000 })) {
-      try {
-        await policyTypeSelect.selectOption({ label: 'Set' });
-      } catch {
-        await policyTypeSelect.selectOption({ index: 0 });
-      }
-      await page.waitForTimeout(1000);
-    }
-
-    let submitButton = page.locator('button[type="submit"]:has-text("Create")').first();
-    if (!await submitButton.isVisible({ timeout: 2000 })) {
-      submitButton = page.locator('button.btn-primary:has-text("Create")').first();
-    }
-    await submitButton.click({ force: true });
-    await page.waitForTimeout(3000);
-
-    console.log(`✅ Policy "${policyId}" created!`);
-    console.log(`\n🚀 Step 2: Now deleting the policy...`);
-
-    // Navigate back to policies page
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
     await dismissAlerts(page);
 
-    // Find and click delete button on our policy
-    const policyCard = page.locator('lib-policy-card').filter({ hasText: policyId });
-    await expect(policyCard).toBeVisible({ timeout: 10000 });
-    
-    const deleteButton = policyCard.locator('i:has-text("delete")');
-    await deleteButton.click({ force: true });
+    const policyRow = page.locator('tr').filter({ hasText: policyId });
+    await expect(policyRow).toBeVisible({ timeout: 10000 });
+    await policyRow.locator('button[title="Delete"]').click({ force: true });
     await page.waitForTimeout(2000);
 
-    // Verify delete confirmation dialog appears
     const deleteConfirm = page.locator('lib-delete-confirm');
     await expect(deleteConfirm).toBeVisible({ timeout: 10000 });
-    
-    // Verify the policy card is shown in the confirmation
     const confirmPolicyCard = deleteConfirm.locator('lib-policy-card');
     await expect(confirmPolicyCard).toBeVisible();
 
-    // Click the Delete button in confirmation dialog
-    const confirmDeleteButton = deleteConfirm.locator('button:has-text("Delete")');
-    await confirmDeleteButton.click({ force: true });
+    const confirmBtn = deleteConfirm.locator('button.ds4h-dc-btn-delete');
+    await confirmBtn.click({ force: true });
     await page.waitForTimeout(3000);
 
-    // Verify success
-    const hasSuccessAlert = await page.locator('.alert-success').isVisible().catch(() => false);
-    if (hasSuccessAlert) {
-      console.log('✅ Success alert displayed!');
-    }
-
-    // Navigate back and verify the policy is no longer visible
-    await page.goto(`${DASHBOARD_BASE_URL}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/policies`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(3000);
-    
-    const deletedPolicyCard = page.locator('lib-policy-card').filter({ hasText: policyId });
-    await expect(deletedPolicyCard).not.toBeVisible();
-    
-    console.log(`✅ SUCCESS! Policy "${policyId}" has been deleted!`);
-    console.log(`🌐 Verify at: ${DASHBOARD_BASE_URL}/policies\n`);
+    await expect(page.locator('tr').filter({ hasText: policyId })).not.toBeVisible();
+    console.log(`Policy "${policyId}" deleted!`);
   });
 
-// Cleanup test: remove all data created during dashboard tests.
-// This test uses direct API calls to guarantee complete removal of test data.
-// Active UI deletion coverage currently covers assets and policies.
-// This cleanup step is required to prepare a clean state for the next test run.
-
+  // Test 8: Cleanup — delete all test data via API
   test('Cleanup: Delete all remaining contract definitions, policies, and assets', async ({ page, request }) => {
-    console.log(`\n🧹 CLEANUP: Removing all test data created by dashboard tests...`);
-    
-    const MANAGEMENT_API_URL = process.env.MANAGEMENT_API_URL || 'https://dataspace4health.local/edc/cp/management/api';
-    
-    // Step 1: Delete all contract definitions first (they reference policies)
-    console.log(`\n📋 Step 1: Deleting contract definitions...`);
-    const contractsResponse = await request.post(`${MANAGEMENT_API_URL}/v3/contractdefinitions/request`, {
+    console.log('CLEANUP: Removing all test data...');
+    const MGMT = process.env.MANAGEMENT_API_URL || 'https://dataspace4health.local/edc/cp/management/api';
+
+    const contractsResp = await request.post(`${MGMT}/v3/contractdefinitions/request`, {
       ignoreHTTPSErrors: true,
-      data: {
-        '@context': {},
-        '@type': 'QuerySpec',
-        offset: 0,
-        limit: 1000,
-      },
+      data: { '@context': {}, '@type': 'QuerySpec', offset: 0, limit: 1000 },
     });
-    
-    if (contractsResponse.ok()) {
-      const contracts = await contractsResponse.json();
-      console.log(`   Found ${contracts.length} contract definition(s) to delete`);
-      
-      for (const contract of contracts) {
-        const contractId = contract['@id'];
-        console.log(`   Deleting contract: ${contractId}`);
-        
-        const deleteResponse = await request.delete(`${MANAGEMENT_API_URL}/v3/contractdefinitions/${contractId}`, {
-          ignoreHTTPSErrors: true,
-        });
-        
-        if (deleteResponse.ok()) {
-          console.log(`   ✅ Deleted: ${contractId}`);
-        } else {
-          console.log(`   ⚠️  Failed to delete: ${contractId}`);
-        }
+    if (contractsResp.ok()) {
+      const contracts = await contractsResp.json();
+      console.log(`Found ${contracts.length} contract definition(s)`);
+      for (const c of contracts) {
+        const id = c['@id'];
+        const r = await request.delete(`${MGMT}/v3/contractdefinitions/${id}`, { ignoreHTTPSErrors: true });
+        console.log(`  ${r.ok() ? 'Deleted' : 'Failed'}: ${id}`);
       }
     }
-    
-    // Step 2: Delete all policies
-    console.log(`\n📋 Step 2: Deleting policies...`);
-    const policiesResponse = await request.post(`${MANAGEMENT_API_URL}/v3/policydefinitions/request`, {
+
+    const policiesResp = await request.post(`${MGMT}/v3/policydefinitions/request`, {
       ignoreHTTPSErrors: true,
-      data: {
-        '@context': {},
-        '@type': 'QuerySpec',
-        offset: 0,
-        limit: 1000,
-      },
+      data: { '@context': {}, '@type': 'QuerySpec', offset: 0, limit: 1000 },
     });
-    
-    if (policiesResponse.ok()) {
-      const policies = await policiesResponse.json();
-      console.log(`   Found ${policies.length} policy/policies to delete`);
-      
-      for (const policy of policies) {
-        const policyId = policy['@id'];
-        console.log(`   Deleting policy: ${policyId}`);
-        
-        const deleteResponse = await request.delete(`${MANAGEMENT_API_URL}/v3/policydefinitions/${policyId}`, {
-          ignoreHTTPSErrors: true,
-        });
-        
-        if (deleteResponse.ok()) {
-          console.log(`   ✅ Deleted: ${policyId}`);
-        } else {
-          console.log(`   ⚠️  Failed to delete: ${policyId}`);
-        }
+    if (policiesResp.ok()) {
+      const policies = await policiesResp.json();
+      console.log(`Found ${policies.length} policy/policies`);
+      for (const p of policies) {
+        const id = p['@id'];
+        const r = await request.delete(`${MGMT}/v3/policydefinitions/${id}`, { ignoreHTTPSErrors: true });
+        console.log(`  ${r.ok() ? 'Deleted' : 'Failed'}: ${id}`);
       }
     }
-    
-    // Step 3: Delete all assets
-    console.log(`\n📋 Step 3: Deleting assets...`);
-    const assetsResponse = await request.post(`${MANAGEMENT_API_URL}/v3/assets/request`, {
+
+    const assetsResp = await request.post(`${MGMT}/v3/assets/request`, {
       ignoreHTTPSErrors: true,
-      data: {
-        '@context': {},
-        '@type': 'QuerySpec',
-        offset: 0,
-        limit: 1000,
-      },
+      data: { '@context': {}, '@type': 'QuerySpec', offset: 0, limit: 1000 },
     });
-    
-    if (assetsResponse.ok()) {
-      const assets = await assetsResponse.json();
-      console.log(`   Found ${assets.length} asset(s) to delete`);
-      
-      for (const asset of assets) {
-        const assetId = asset['@id'];
-        console.log(`   Deleting asset: ${assetId}`);
-        
-        const deleteResponse = await request.delete(`${MANAGEMENT_API_URL}/v3/assets/${assetId}`, {
-          ignoreHTTPSErrors: true,
-        });
-        
-        if (deleteResponse.ok()) {
-          console.log(`   ✅ Deleted: ${assetId}`);
-        } else {
-          console.log(`   ⚠️  Failed to delete: ${assetId}`);
-        }
+    if (assetsResp.ok()) {
+      const assets = await assetsResp.json();
+      console.log(`Found ${assets.length} asset(s)`);
+      for (const a of assets) {
+        const id = a['@id'];
+        const r = await request.delete(`${MGMT}/v3/assets/${id}`, { ignoreHTTPSErrors: true });
+        console.log(`  ${r.ok() ? 'Deleted' : 'Failed'}: ${id}`);
       }
     }
-    
-    console.log(`\n✅ CLEANUP COMPLETE! All test data has been removed.\n`);
+
+    console.log('CLEANUP COMPLETE!');
   });
+
 });
