@@ -17,7 +17,7 @@ controlplane:
   config:
     participantId: "did:web:dataspace4health.local"
     vault:
-      createSecret: false  # managed by helm-vault chart (helm.sh/resource-policy: keep), make it true inacase of testing when secret to be created from the provided token root --- not advisable on production
+      createSecret: false  # secret is created by identityhub component; set true only there
       token: "root" #-- vault token (only used when createSecret is true) and only for testing purposes, token should be stored manually in the secret --- not advisable on production 
       tokenSecretName: "edc-vault"   # K8s Secret written by helm-vault in case there is a separate vault deployment or the secret name created manually
       tokenSecretKey: "token"
@@ -32,7 +32,7 @@ dataplane:
     stsPrivateKeyAlias: "key-1"
     stsPublicKeyAlias: "key-1"
     vault:
-      createSecret: false  # managed by helm-vault chart (helm.sh/resource-policy: keep), make it true inacase of testing when secret to be created from the provided token root --- not advisable on production
+      createSecret: false  # secret is created by identityhub component; set true only there
       token: "root" #-- vault token (only used when createSecret is true) and only for testing purposes, token should be stored manually in the secret --- not advisable on production 
       tokenSecretName: "edc-vault"   # K8s Secret written by helm-vault in case there is a separate vault deployment or the secret name created manually
       tokenSecretKey: "token"
@@ -68,7 +68,7 @@ identityhub:
     identityHubIamId: "default"
     identityHubIamPublicKeyAlias: "default-key"
     vault:
-      createSecret: false  # managed by helm-vault chart (helm.sh/resource-policy: keep), make it true inacase of testing when secret to be created from the provided token root --- not advisable on production
+      createSecret: true  # set false when using standalone helm-edc-hashicorp-vault chart (production)
       token: "root" #-- vault token (only used when createSecret is true) and only for testing purposes, token should be stored manually in the secret --- not advisable on production 
       tokenSecretName: "edc-vault"   # K8s Secret written by helm-vault in case there is a separate vault deployment or the secret name created manually
       tokenSecretKey: "token"

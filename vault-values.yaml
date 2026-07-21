@@ -1,24 +1,19 @@
 # =============================================================================
 # helm-edc-connector/vault-values.yaml
 # =============================================================================
-# Vault is now deployed as a SEPARATE Helm release (helm-vault/).
-# The vault sub-chart inside helm-edc-connector is DISABLED.
+# This overlay ENABLES the embedded HashiCorp Vault sub-chart for
+# standalone / CI use (e.g. `helm install edc helm/*.tgz -f vault-values.yaml`).
 #
-# Deploy the standalone vault first:
-#   helm dependency update helm-vault/
-#   helm install edc-vault helm-vault/ -n <namespace>
-#   make -C helm-vault vault-init RELEASE=edc-vault NS=<namespace>
-#   helm upgrade edc-vault helm-vault/ -n <namespace> \
-#     --set unsealKey=<key> --set tokenSecret.value=<token>
+# vault.enabled: true  → deploys vault in dev mode alongside the connector.
+#                         Suitable for testing and CI pipelines.
+#                         NOT suitable for production (in-memory, loses secrets on restart).
 #
-# Then deploy the connector (vault.enabled stays false):
-#   helm install edc helm-edc-connector/ -n <namespace> \
-#     -f helm-edc-connector/values.yaml
-#
-# See helm-vault/README.md for the full setup workflow.
+# For PRODUCTION use, keep vault.enabled: false here and deploy the standalone
+# helm-edc-hashicorp-vault chart separately.
+# See helm-edc-hashicorp-vault/README.md for the full setup workflow.
 # =============================================================================
 vault:
-  enabled: false
+  enabled: true   # deploy embedded vault for helm-edc-connector standalone/CI use
   global:
     openshift: true
   server:
