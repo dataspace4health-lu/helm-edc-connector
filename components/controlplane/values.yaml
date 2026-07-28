@@ -117,6 +117,9 @@ config:
     catalog: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read"  # Scope for catalog policy validation
     contract: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read"  # Scope for contract policy validation
     transfer: "verifiableCredential.credential.type:https://w3id.org/gaia-x/2511#LegalPerson:read"  # Scope for transfer policy validation
+  # -- Digital Clearing House base URL. When set, contract-negotiation and transfer-process
+  # events are forwarded to the clearing house. Leave empty to disable.
+  clearingHouseUrl: ""
     
 #TODO: to add ingress for all the exposed apis
 ingress:

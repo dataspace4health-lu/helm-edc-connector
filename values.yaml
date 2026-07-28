@@ -16,6 +16,9 @@ controlplane:
     nameOverride: controlplane-postgresql
   config:
     participantId: "did:web:dataspace4health.local"
+    # -- Digital Clearing House base URL. When set, contract-negotiation and transfer-process
+    # events are forwarded to the clearing house. Leave empty to disable.
+    clearingHouseUrl: ""
     vault:
       createSecret: false  # secret is created by identityhub component; set true only there
       token: "root" #-- vault token (only used when createSecret is true) and only for testing purposes, token should be stored manually in the secret --- not advisable on production 

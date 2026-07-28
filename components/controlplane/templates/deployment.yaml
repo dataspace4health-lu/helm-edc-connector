@@ -163,6 +163,11 @@ spec:
                 key: password
           - name: EDC_DATASOURCE_DEFAULT_USER
             value: {{ .Values.postgresql.auth.username }}
+            ## Clearing House configuration
+        {{- if .Values.config.clearingHouseUrl }}
+          - name: EDC_CLEARINGHOUSE_URL
+            value: "{{ .Values.config.clearingHouseUrl }}"
+        {{- end }}
             ## Extra environment variables
 {{- if .Values.extraVars }}
 {{ toYaml .Values.extraVars | indent 10 }}
