@@ -137,7 +137,7 @@ keycloak:
     ## password on the FIRST install. Changing it on subsequent upgrades will cause
     ## a mismatch between the stored DB data and the new secret, leading to
     ## Keycloak CrashLoopBackOff. Always use the same password you used on first install.
-    adminPassword: "xfsc4Ntt!"
+    adminPassword: "password"
   ## Serve Keycloak under the /iam/ subpath (matches the dashboard keycloak.url)
   httpRelativePath: "/iam/"
   proxy: edge
@@ -172,8 +172,8 @@ keycloak:
       database: keycloak
       username: keycloak
       ## Must match adminPassword above and must never change after the first install.
-      password: "xfsc4Ntt!"
-      postgresPassword: "xfsc4Ntt!"
+      password: "password"
+      postgresPassword: "password"
     primary:
       persistence:
         size: 5Gi
